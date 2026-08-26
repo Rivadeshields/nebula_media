@@ -1,39 +1,23 @@
-# Configurar guardado en equipo (solo quien administra · 3 minutos)
+# Clave del equipo (solo quien administra)
 
-Los demás **no** hacen esto. Solo abren el link, editan y pulsan **Guardar**.
+Los demás **no** crean tokens. Solo escriben la **clave del equipo** en la barra de la web y pulsan Guardar.
 
-## 1. Crear un token de GitHub
+## 1. Revoca el token anterior (importante)
 
-1. Abre: https://github.com/settings/personal-access-tokens/new  
-2. Token name: `nebula-workshop`  
-3. Expiration: 90 days (o lo que prefieras)  
-4. Repository access: **Only select repositories** → `nebula_media`  
-5. Permissions → **Contents: Read and write**  
-6. Generate y **copia** el token (empieza con `github_pat_`)
+Si ya generaste uno y lo pegaste en el chat, revócalo:
+https://github.com/settings/personal-access-tokens
 
-## 2. Pegarlo en `config.js`
+## 2. Crea un token nuevo
 
-```js
-window.NEBULA_CONFIG = {
-  githubToken: "github_pat_…",  // tu token
-  teamPassword: "",             // opcional
-  owner: "Rivadeshields",
-  repo: "nebula_media",
-  branch: "main",
-};
-```
+1. https://github.com/settings/personal-access-tokens/new  
+2. Solo repo `nebula_media`  
+3. Permission **Contents → Read and write**  
+4. Generate y copia el token (`github_pat_…`)
 
-## 3. Avisarme o subir tú el cambio
+## 3. Úsalo como “clave del equipo”
 
-Si me pegas el token aquí lo dejo yo en `config.js` y lo subo.  
-O en la terminal:
+- En la web, campo **Clave del equipo**, pega el token.  
+- Comparte esa misma clave con el equipo por WhatsApp/mail.  
+- Cada persona la escribe una vez en su navegador (no va en GitHub).
 
-```bash
-git add config.js && git commit -m "Enable team save" && git push
-```
-
-## Seguridad
-
-- El token queda en el JS de la web: úsalo **solo** para este workshop y limítalo al repo `nebula_media`.
-- Si quieres más control, pon una `teamPassword`.
-- Cuando termine el workshop, revoca el token en GitHub → Settings → Tokens.
+No la subas a `config.js`: GitHub bloquea el push si el token está en el código.

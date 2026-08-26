@@ -44,12 +44,23 @@
       owner: c.owner || "Rivadeshields",
       repo: c.repo || "nebula_media",
       branch: c.branch || "main",
-      token: c.githubToken || "",
+      token: sessionStorage.getItem("nebula-publish-key") || "",
     };
   }
 
   function isConfigured() {
-    return Boolean(repo().token);
+    // Always allow save attempt; token comes from the team key field
+    return true;
+  }
+
+  function getPublishKey() {
+    const input = document.getElementById("team-password");
+    const typed = (input?.value || "").trim();
+    if (typed) {
+      sessionStorage.setItem("nebula-publish-key", typed);
+      return typed;
+    }
+    return sessionStorage.getItem("nebula-publish-key") || "";
   }
 
   function fields() {
@@ -316,8 +327,8 @@
   }
 
   async function githubApi(path, options = {}) {
-    const { token } = repo();
-    if (!token) throw new Error("Falta configurar el token en config.js (SETUP.md)");
+    const token = getPublishKey() || repo().token;
+    if (!token) throw new Error("Escribe la clave del equipo antes de guardar");
     const res = await fetch(`https://api.github.com${path}`, {
       ...options,
       headers: {
@@ -386,14 +397,13 @@
     const name = (nameInput?.value || "").trim() || "Alguien del equipo";
     localStorage.setItem(NAME_KEY, name);
 
-    const password = cfg().teamPassword || "";
+    const publishKey = getPublishKey();
     const inputPass = document.getElementById("team-password");
-    if (password) {
-      if (inputPass) inputPass.hidden = false;
-      if ((inputPass?.value || "") !== password) {
-        setStatus("Clave del equipo incorrecta");
-        return;
-      }
+    if (inputPass) inputPass.hidden = false;
+    if (!publishKey) {
+      setStatus("Escribe la clave del equipo (la comparten por WhatsApp / mail) y pulsa Guardar");
+      inputPass?.focus();
+      return;
     }
 
     saving = true;
@@ -404,13 +414,6 @@
     saveLocalDraft();
 
     try {
-      if (!isConfigured()) {
-        showSuccessThenReload(
-          `Cambio guardado en este navegador · ${name}. Para compartirlo con el equipo, completa SETUP.md (token).`
-        );
-        return;
-      }
-
       const { owner, repo: nameRepo, branch } = repo();
       const me = await githubApi("/user");
       const login = me.login || name;
@@ -464,7 +467,8 @@
       showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
     } catch (err) {
       console.error(err);
-      setStatus(`No se pudo guardar: ${err.message}`);
+      sessionStorage.removeItem("nebula-publish-key");
+      setStatus(`No se pudo guardar: ${err.message}. Revisa la clave del equipo.`);
     } finally {
       saving = false;
       if (btn) btn.disabled = false;
@@ -676,9 +680,10 @@
     const nameInput = document.getElementById("editor-name");
     if (nameInput) nameInput.value = localStorage.getItem(NAME_KEY) || "";
 
-    const pass = cfg().teamPassword || "";
     const passInput = document.getElementById("team-password");
-    if (pass && passInput) passInput.hidden = false;
+    if (passInput && sessionStorage.getItem("nebula-publish-key")) {
+      passInput.placeholder = "Clave guardada en este navegador";
+    }
 
     document.getElementById("btn-save")?.addEventListener("click", saveShared);
     document.getElementById("btn-undo")?.addEventListener("click", undo);
@@ -721,11 +726,7 @@
       } catch {
         /* ignore */
       }
-      setStatus(
-        isConfigured()
-          ? "Listo para editar"
-          : "Listo · Guardar funciona aquí; para el equipo completa SETUP.md"
-      );
+      setStatus("Listo · escribe la clave del equipo y pulsa Guardar");
     }
 
     updateAutoChecks();

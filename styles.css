@@ -90,14 +90,8 @@ body {
   text-align: center;
 }
 
-.topbar__name {
-  width: 110px;
-  padding: 0.4rem 0.55rem;
-  border: 1px solid var(--line);
-  background: #0c0918;
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.8rem;
+.topbar__name--wide {
+  width: 150px;
 }
 
 .topbar__icon-btn {
