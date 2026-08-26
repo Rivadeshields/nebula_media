@@ -693,39 +693,74 @@ img {
   font-weight: 300;
 }
 
-/* —— Servicios —— */
+/* —— Servicios (filas horizontales) —— */
 .services {
   display: grid;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
-.services--three {
+.services--rows {
   grid-template-columns: 1fr;
 }
 
 .service {
-  padding: 1.75rem;
   border: 1px solid var(--line);
   background: var(--bg-elevated);
 }
 
+.service--row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) 1fr;
+  gap: 0;
+  min-height: 0;
+}
+
+.service__rail {
+  padding: 1.5rem 1.25rem;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: rgba(12, 9, 24, 0.25);
+}
+
+.service__n {
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: rgba(46, 196, 182, 0.35);
+}
+
+.service__body {
+  padding: 1.5rem 1.75rem;
+  max-width: 46rem;
+}
+
 .service--primary {
   border-color: rgba(46, 196, 182, 0.35);
-  background:
-    linear-gradient(135deg, rgba(46, 196, 182, 0.08), transparent 40%),
-    var(--bg-elevated);
+}
+
+.service--primary .service__rail {
+  background: rgba(46, 196, 182, 0.08);
+}
+
+.service--primary .service__n {
+  color: rgba(46, 196, 182, 0.55);
 }
 
 .service__label {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--accent);
   font-weight: 500;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .tag-warn {
@@ -741,7 +776,7 @@ img {
 
 .service h3 {
   margin: 0 0 0.85rem;
-  font-size: 1.3rem;
+  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
   font-weight: 500;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -750,9 +785,13 @@ img {
 .service p {
   margin: 0 0 1rem;
   font-size: 0.95rem;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--ink-soft);
   font-weight: 300;
+}
+
+.service__body > p:last-child {
+  margin-bottom: 0;
 }
 
 .service__diff {
@@ -796,13 +835,26 @@ img {
   font-weight: 400;
 }
 
-@media (min-width: 900px) {
-  .services--three {
-    grid-template-columns: 1.4fr 1fr 1fr;
+@media (max-width: 720px) {
+  .service--row {
+    grid-template-columns: 1fr;
   }
 
-  .service--primary {
-    grid-row: span 1;
+  .service__rail {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+  }
+
+  .service__n {
+    font-size: 2rem;
+  }
+
+  .service__body {
+    padding: 1.25rem;
   }
 }
 
