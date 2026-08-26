@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nébula Media — Maqueta de contenidos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="is-editing">
+  <aside class="panel" aria-label="Notas de trabajo">
+    <p class="panel__eyebrow">Workshop · Arquitectura v1</p>
+    <h1 class="panel__title">Mapa de la web</h1>
+    <p class="panel__lead">
+      Página provisional para redactar copy en contexto.
+      Edita los textos marcados; exporta Markdown o JSON para la diseñadora.
+    </p>
+    <ol class="panel__nav">
+      <li><a href="#inicio"><span>01</span> Inicio</a></li>
+      <li><a href="#como-trabajamos"><span>02</span> Cómo trabajamos</a></li>
+      <li><a href="#quienes-somos"><span>03</span> Quiénes somos</a></li>
+      <li><a href="#servicios"><span>04</span> Servicios</a></li>
+      <li><a href="#portafolio"><span>05</span> Portafolio</a></li>
+      <li><a href="#lab"><span>06</span> Blog / Lab</a></li>
+      <li><a href="#footer"><span>07</span> Footer / RED</a></li>
+    </ol>
+
+    <div class="panel__tools" aria-label="Herramientas de copy">
+      <p class="panel__tools-title">Copy de trabajo</p>
+      <p id="editor-status" class="panel__status">Listo para editar</p>
+      <div class="panel__actions">
+        <button type="button" class="btn" id="btn-save">Guardar</button>
+        <button type="button" class="btn btn--accent" id="btn-export-md">Exportar MD</button>
+        <button type="button" class="btn" id="btn-export-json">Exportar JSON</button>
+        <button type="button" class="btn btn--ghost" id="btn-reset">Reset borrador</button>
+      </div>
+      <p class="panel__hint">
+        Los cambios se guardan en este navegador. Exporta el archivo y compártelo con el equipo / diseñadora.
+      </p>
+    </div>
+
+    <div class="panel__decision">
+      <h2>Pendientes del workshop</h2>
+      <ul>
+        <li>Frase promesa / diferencial inspirador</li>
+        <li>Paquetizar mejor Servicio 2</li>
+        <li>Testimonios + permisos de logos</li>
+        <li>Sesión de fotos del equipo</li>
+        <li>1ª entrada del Blog/Lab</li>
+        <li>Material de portafolio (fotos, registro)</li>
+      </ul>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <header class="site-nav">
+      <a class="logo" href="#inicio">
+        <img src="logo.png" alt="Nébula Media" width="160" height="48" />
+      </a>
+      <nav>
+        <a href="#como-trabajamos">Cómo trabajamos</a>
+        <a href="#quienes-somos">Quiénes somos</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#portafolio">Portafolio</a>
+        <a href="#lab">Blog / Lab</a>
+      </nav>
+      <a
+        class="cta cta--nav"
+        href="#contacto"
+        data-field="nav.cta"
+        data-section="inicio"
+        data-label="CTA navegación"
+      >Hablemos de tu proyecto</a>
+    </header>
+
+    <!-- 01 INICIO -->
+    <section id="inicio" class="section hero">
+      <div class="section__meta">
+        <span class="badge">01 · Inicio</span>
+        <span class="goal">Diferencial inspirador · promesa en &lt; 5 s</span>
+      </div>
+      <div class="hero__plane" aria-hidden="true"></div>
+      <div class="hero__content">
+        <img class="hero__mark" src="logo.png" alt="" width="220" height="66" />
+        <h2
+          class="hero__headline"
+          data-field="inicio.headline"
+          data-section="inicio"
+          data-label="Frase promesa / diferencial"
+        >[Su diferencial “inspirador” — una frase que capture atención]</h2>
+        <p
+          class="hero__support"
+          data-field="inicio.support"
+          data-section="inicio"
+          data-label="Bajada del hero"
+        >Puente entre ciencia, arte y sociedad. Traducimos investigación a narrativas audiovisuales y digitales con rigor y creatividad.</p>
+        <div class="hero__actions">
+          <a
+            class="cta"
+            href="#contacto"
+            data-field="inicio.cta_primary"
+            data-section="inicio"
+            data-label="CTA primario"
+          >Hablemos de tu proyecto</a>
+          <a
+            class="cta cta--ghost"
+            href="#portafolio"
+            data-field="inicio.cta_secondary"
+            data-section="inicio"
+            data-label="CTA secundario"
+          >Ver portafolio</a>
+        </div>
+      </div>
+      <aside class="note">
+        <h3>Para el visitante investigador</h3>
+        <ul>
+          <li data-field="inicio.note_1" data-section="inicio" data-label="Nota hero 1">No es “poner la cámara”: es traducción con base científica.</li>
+          <li data-field="inicio.note_2" data-section="inicio" data-label="Nota hero 2">Ayuda en postulación, documentación y comunicación de hallazgos.</li>
+          <li data-field="inicio.note_3" data-section="inicio" data-label="Nota hero 3">Par dentro del desarrollo de la investigación.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <!-- 02 CÓMO TRABAJAMOS -->
+    <section id="como-trabajamos" class="section">
+      <div class="section__meta">
+        <span class="badge">02 · Cómo trabajamos</span>
+        <span class="goal">Antes “Metodología” · proceso cíclico, no rígido</span>
+      </div>
+      <div class="section__head">
+        <h2 data-field="como.titulo" data-section="como-trabajamos" data-label="Título de sección">Cómo trabajamos</h2>
+        <p data-field="como.lead" data-section="como-trabajamos" data-label="Lead de sección">
+          Contexto, traducción y experiencia: un ciclo. Cada proyecto define su forma;
+          lo constante es el estudio del material y la construcción del relato con el equipo científico.
+        </p>
+      </div>
+
+      <div class="context-block">
+        <h3>Contexto</h3>
+        <div class="context-grid">
+          <div>
+            <p class="context-label">De dónde nace</p>
+            <p data-field="como.contexto_origen" data-section="como-trabajamos" data-label="Contexto · de dónde nace">[Brecha en comunicación de la ciencia: lenguaje, acceso, narrativa]</p>
+          </div>
+          <div>
+            <p class="context-label">Para qué sirve</p>
+            <p data-field="como.contexto_para" data-section="como-trabajamos" data-label="Contexto · para qué sirve">[Por qué es relevante hoy social y culturalmente]</p>
+          </div>
+          <div>
+            <p class="context-label">Cómo aplicamos</p>
+            <p data-field="como.contexto_como" data-section="como-trabajamos" data-label="Contexto · cómo aplicamos">Investigación → traducción → experiencia → retroalimentación.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="keys">
+        <article class="key">
+          <span class="key__n">01</span>
+          <h3 data-field="como.key1_titulo" data-section="como-trabajamos" data-label="Paso 01 · título">Estudio del material</h3>
+          <p data-field="como.key1_texto" data-section="como-trabajamos" data-label="Paso 01 · texto">Partimos del conocimiento científico. Rigurosidad en el lenguaje y en el contenido de partida.</p>
+        </article>
+        <article class="key">
+          <span class="key__n">02</span>
+          <h3 data-field="como.key2_titulo" data-section="como-trabajamos" data-label="Paso 02 · título">Relato a cuatro manos</h3>
+          <p data-field="como.key2_texto" data-section="como-trabajamos" data-label="Paso 02 · texto">Construimos la narrativa con los investigadores: no informamos solo — contamos con coherencia interna.</p>
+        </article>
+        <article class="key">
+          <span class="key__n">03</span>
+          <h3 data-field="como.key3_titulo" data-section="como-trabajamos" data-label="Paso 03 · título">Traducción multimedia</h3>
+          <p data-field="como.key3_texto" data-section="como-trabajamos" data-label="Paso 03 · texto">Llevamos la investigación a una experiencia para el público: audiovisual, diseño, redes, inmersivo.</p>
+        </article>
+        <article class="key">
+          <span class="key__n">04</span>
+          <h3 data-field="como.key4_titulo" data-section="como-trabajamos" data-label="Paso 04 · título">Ciclo y retorno</h3>
+          <p data-field="como.key4_texto" data-section="como-trabajamos" data-label="Paso 04 · texto">El proceso no es lineal: la experiencia alimenta de nuevo la investigación y la comunicación.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 03 QUIÉNES SOMOS -->
+    <section id="quienes-somos" class="section">
+      <div class="section__meta">
+        <span class="badge">03 · Quiénes somos</span>
+        <span class="goal">Qué es Nébula · Equipo · Testimonios</span>
+      </div>
+      <div class="section__head">
+        <h2 data-field="quienes.titulo" data-section="quienes-somos" data-label="Título de sección">Quiénes somos</h2>
+        <p data-field="quienes.lead" data-section="quienes-somos" data-label="Qué es Nébula">
+          Qué es Nébula: híbrido entre producción audiovisual y acompañamiento a la investigación.
+          Somos un par dentro del desarrollo: lo académico está presente en la producción.
+        </p>
+      </div>
+
+      <div class="identity-grid">
+        <div class="identity-block">
+          <h3>Equipo <span class="hint">· sesión de fotos pendiente</span></h3>
+          <div class="people">
+            <div class="person">
+              <div class="person__photo"></div>
+              <p class="person__name" data-field="quienes.p1_nombre" data-section="quienes-somos" data-label="Integrante 1 · nombre">Integrante</p>
+              <p class="person__role" data-field="quienes.p1_rol" data-section="quienes-somos" data-label="Integrante 1 · rol">[Mirada / perfil]</p>
+            </div>
+            <div class="person">
+              <div class="person__photo"></div>
+              <p class="person__name" data-field="quienes.p2_nombre" data-section="quienes-somos" data-label="Integrante 2 · nombre">Integrante</p>
+              <p class="person__role" data-field="quienes.p2_rol" data-section="quienes-somos" data-label="Integrante 2 · rol">[Mirada / perfil]</p>
+            </div>
+            <div class="person">
+              <div class="person__photo"></div>
+              <p class="person__name" data-field="quienes.p3_nombre" data-section="quienes-somos" data-label="Integrante 3 · nombre">Integrante</p>
+              <p class="person__role" data-field="quienes.p3_rol" data-section="quienes-somos" data-label="Integrante 3 · rol">[Mirada / perfil]</p>
+            </div>
+          </div>
+        </div>
+        <div class="identity-block">
+          <h3>Clientes / Testimonios</h3>
+          <blockquote class="quote">
+            <span data-field="quienes.testimonio" data-section="quienes-somos" data-label="Testimonio">“[Qué valoran: manejo técnico, lenguaje audiovisual, comunicación de hallazgos…]”</span>
+            <cite data-field="quienes.testimonio_cite" data-section="quienes-somos" data-label="Atribución testimonio">— Investigador/a · institución</cite>
+          </blockquote>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 SERVICIOS -->
+    <section id="servicios" class="section">
+      <div class="section__meta">
+        <span class="badge">04 · Servicios</span>
+        <span class="goal">Tres pilares · foco en narrativa y estrategia</span>
+      </div>
+      <div class="section__head">
+        <h2 data-field="servicios.titulo" data-section="servicios" data-label="Título de sección">Servicios</h2>
+        <p data-field="servicios.lead" data-section="servicios" data-label="Lead de sección">
+          Producción con base científica, asesoría de traducción comunicacional
+          e integración al proyecto desde la postulación.
+        </p>
+      </div>
+
+      <div class="services services--three">
+        <article class="service service--primary">
+          <p class="service__label">Servicio 01</p>
+          <h3 data-field="servicios.s1_titulo" data-section="servicios" data-label="Servicio 01 · título">Producción audiovisual y multimedia</h3>
+          <p data-field="servicios.s1_texto" data-section="servicios" data-label="Servicio 01 · descripción">
+            Nos especializamos en producción audiovisual y multimedia con un enfoque único:
+            partimos de la investigación y el conocimiento científico para traducirlo en narrativas
+            rigurosas y accesibles. Desarrollamos documentales, cápsulas, piezas para redes,
+            entrevistas, animaciones, visualizaciones y experiencias inmersivas, cruzando
+            el audiovisual, el diseño y las redes.
+          </p>
+          <p class="service__diff" data-field="servicios.s1_diff" data-section="servicios" data-label="Servicio 01 · diferencial">
+            Nuestra diferencia: trabajamos con base científica. Estudiamos a fondo cada tema
+            para elaborar contenidos, formatos y productos que comuniquen con precisión y creatividad.
+          </p>
+        </article>
+
+        <article class="service">
+          <p class="service__label">Servicio 02 <span class="tag-warn">paquetizar</span></p>
+          <h3 data-field="servicios.s2_titulo" data-section="servicios" data-label="Servicio 02 · título">Asesorías y codiseño en procesos de investigación</h3>
+          <p data-field="servicios.s2_texto" data-section="servicios" data-label="Servicio 02 · descripción">
+            Acompañamiento que no es solo entrega de producto: asesoría estratégica (prensa),
+            asesoría de traducción y codiseño del proceso comunicacional con el equipo científico.
+          </p>
+          <p class="service__note" data-field="servicios.s2_nota" data-section="servicios" data-label="Servicio 02 · nota interna">Pendiente: cerrar mejor el “paquete” comercial de este servicio.</p>
+        </article>
+
+        <article class="service">
+          <p class="service__label">Servicio 03</p>
+          <h3 data-field="servicios.s3_titulo" data-section="servicios" data-label="Servicio 03 · título">Integración a proyectos de investigación</h3>
+          <p data-field="servicios.s3_texto" data-section="servicios" data-label="Servicio 03 · descripción">
+            Nos integramos como un miembro más del equipo. Postulamos a fondos junto a los
+            investigadores y participamos desde la planificación inicial hasta la producción
+            de contenidos multimedia, con trabajo transdisciplinar a lo largo de todo el proyecto.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 05 PORTAFOLIO -->
+    <section id="portafolio" class="section">
+      <div class="section__meta">
+        <span class="badge">05 · Portafolio</span>
+        <span class="goal">Documental · Gráfica · Redes · Registro</span>
+      </div>
+      <div class="section__head">
+        <h2 data-field="portafolio.titulo" data-section="portafolio" data-label="Título de sección">Portafolio</h2>
+        <p data-field="portafolio.lead" data-section="portafolio" data-label="Lead de sección">
+          Por caso: producto final, proceso de realización, descripción, comentario de cliente
+          y —si aporta— mockup o soporte (ej. manual A2C / librillo Beauchef).
+        </p>
+      </div>
+
+      <div class="portfolio">
+        <article class="case case--featured">
+          <div class="case__media"><span>Producto + proceso creativo</span></div>
+          <div class="case__body">
+            <p class="case__tag" data-field="portafolio.caso_tag" data-section="portafolio" data-label="Caso destacado · etiqueta">Caso · ej. Librillo Beauchef / A2C</p>
+            <h3 data-field="portafolio.caso_titulo" data-section="portafolio" data-label="Caso destacado · título">Estructura de caso</h3>
+            <p data-field="portafolio.caso_desc" data-section="portafolio" data-label="Caso destacado · descripción">Descripción del proyecto, proceso creativo y comentario de cliente.</p>
+          </div>
+        </article>
+        <article class="case">
+          <div class="case__media"><span>Documental</span></div>
+          <h3 data-field="portafolio.d1_titulo" data-section="portafolio" data-label="Caso documental · título">Título</h3>
+          <p data-field="portafolio.d1_texto" data-section="portafolio" data-label="Caso documental · texto">Historia y efecto en el espectador</p>
+        </article>
+        <article class="case">
+          <div class="case__media"><span>Gráfica</span></div>
+          <h3 data-field="portafolio.g1_titulo" data-section="portafolio" data-label="Caso gráfica · título">Título</h3>
+          <p data-field="portafolio.g1_texto" data-section="portafolio" data-label="Caso gráfica · texto">Visualización de lo complejo</p>
+        </article>
+        <article class="case">
+          <div class="case__media"><span>Redes</span></div>
+          <h3 data-field="portafolio.r1_titulo" data-section="portafolio" data-label="Caso redes · título">Título</h3>
+          <p data-field="portafolio.r1_texto" data-section="portafolio" data-label="Caso redes · texto">Consumo rápido con profundidad</p>
+        </article>
+        <article class="case">
+          <div class="case__media"><span>Registro</span></div>
+          <h3 data-field="portafolio.reg1_titulo" data-section="portafolio" data-label="Caso registro · título">Título</h3>
+          <p data-field="portafolio.reg1_texto" data-section="portafolio" data-label="Caso registro · texto">Narrativa sobre el “puro registro”</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 06 BLOG / LAB -->
+    <section id="lab" class="section">
+      <div class="section__meta">
+        <span class="badge">06 · Blog / Lab</span>
+        <span class="goal">Eje diferenciador · más noticioso que bitácora</span>
+      </div>
+      <div class="section__head">
+        <h2 data-field="lab.titulo" data-section="lab" data-label="Título de sección">Blog / Lab</h2>
+        <p data-field="lab.lead" data-section="lab" data-label="Lead de sección">
+          Dispositivo de divulgación: instalarse en la conversación pública, compartir aprendizajes
+          y tejer red con la comunidad. Formato noticioso con reflexiones amplias.
+        </p>
+      </div>
+      <div class="lab-grid">
+        <article class="lab-card">
+          <p class="lab-card__meta" data-field="lab.e1_meta" data-section="lab" data-label="Entrada 01 · meta">Entrada 01 · pendiente</p>
+          <h3 data-field="lab.e1_titulo" data-section="lab" data-label="Entrada 01 · título">Narrativa digital y desinformación</h3>
+          <p data-field="lab.e1_texto" data-section="lab" data-label="Entrada 01 · texto">Reflexión sobre cómo se cuenta (y se distorsiona) el conocimiento en el mundo digital.</p>
+        </article>
+        <article class="lab-card">
+          <p class="lab-card__meta" data-field="lab.e2_meta" data-section="lab" data-label="Entrada 02 · meta">Cobertura</p>
+          <h3 data-field="lab.e2_titulo" data-section="lab" data-label="Entrada 02 · título">Eventos · ej. Lincoln</h3>
+          <p data-field="lab.e2_texto" data-section="lab" data-label="Entrada 02 · texto">Presencia en la escena y registro crítico de lo que ocurre.</p>
+        </article>
+        <article class="lab-card">
+          <p class="lab-card__meta" data-field="lab.e3_meta" data-section="lab" data-label="Entrada 03 · meta">Conversación</p>
+          <h3 data-field="lab.e3_titulo" data-section="lab" data-label="Entrada 03 · título">Comunicación pública de la ciencia en Chile</h3>
+          <p data-field="lab.e3_texto" data-section="lab" data-label="Entrada 03 · texto">Mapear la escena, abrir debate, posicionar a Nébula como referente.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 07 FOOTER -->
+    <footer id="footer" class="section footer">
+      <div class="section__meta">
+        <span class="badge">07 · Footer / RED</span>
+        <span class="goal">Instituciones asociadas · colaboradores con permiso</span>
+      </div>
+
+      <div class="footer__grid">
+        <div>
+          <h2 data-field="footer.red_titulo" data-section="footer" data-label="RED · título">RED · Instituciones asociadas</h2>
+          <div class="logos">
+            <span class="logo-slot">Logo</span>
+            <span class="logo-slot">Logo</span>
+            <span class="logo-slot">Logo</span>
+            <span class="logo-slot">Logo</span>
+          </div>
+          <p class="footer__hint" data-field="footer.red_hint" data-section="footer" data-label="RED · nota">Solo colaboradores que acepten aparecer en la web.</p>
+        </div>
+        <div id="contacto" class="footer__contact">
+          <h2 data-field="footer.contacto_titulo" data-section="footer" data-label="Contacto · título">¿Conversamos?</h2>
+          <p data-field="footer.contacto_texto" data-section="footer" data-label="Contacto · texto">Para investigadores e instituciones que quieren comunicar con rigor — no solo registrar.</p>
+          <a
+            class="cta"
+            href="mailto:hola@nebulamedia.cl"
+            data-field="footer.cta"
+            data-section="footer"
+            data-label="Contacto · CTA"
+          >Hablemos de tu proyecto</a>
+        </div>
+      </div>
+
+      <div class="footer__bar">
+        <img src="logo.png" alt="Nébula Media" width="120" height="36" />
+        <p class="transversal" data-field="footer.transversal" data-section="footer" data-label="Pregunta transversal">
+          ¿Qué queremos que alguien entienda, sienta y haga al cerrar esta página?
+        </p>
+      </div>
+    </footer>
+  </div>
+  <script src="editor.js"></script>
+</body>
+</html>
