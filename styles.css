@@ -225,13 +225,48 @@ img {
   color: var(--warn);
 }
 
+.panel__pending-meta {
+  margin: 0 0 0.65rem;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-weight: 300;
+}
+
 .panel__decision ul {
   margin: 0;
-  padding-left: 1.1rem;
+  padding-left: 0;
+  list-style: none;
   font-size: 0.85rem;
   line-height: 1.55;
   color: var(--ink-soft);
   font-weight: 300;
+}
+
+.panel__decision li {
+  position: relative;
+  padding: 0.25rem 0 0.25rem 1.35rem;
+}
+
+.panel__decision li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 1px solid rgba(224, 179, 90, 0.7);
+  border-radius: 2px;
+}
+
+.panel__decision li.is-done {
+  color: rgba(183, 176, 201, 0.55);
+  text-decoration: line-through;
+}
+
+.panel__decision li.is-done::before {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 2px #100c22;
 }
 
 /* —— Escenario —— */
@@ -657,6 +692,69 @@ img {
     linear-gradient(145deg, #3d2f6a 0%, #1e143f 60%, #2ec4b633 100%);
   margin-bottom: 0.65rem;
   border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: rgba(242, 238, 248, 0.55);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  outline: 1px dashed transparent;
+  outline-offset: -6px;
+  transition: outline-color 0.15s ease;
+}
+
+.person__photo:hover,
+.person__photo:focus-visible {
+  outline-color: rgba(46, 196, 182, 0.65);
+  color: var(--accent);
+}
+
+.person__photo .upload-label {
+  font-size: 0.75rem;
+  padding: 0.5rem;
+}
+
+.person__photo.has-image {
+  outline: none;
+}
+
+.schema-upload {
+  margin-top: 2rem;
+  min-height: 220px;
+  border: 1px dashed rgba(46, 196, 182, 0.45);
+  background: rgba(12, 9, 24, 0.35);
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: rgba(242, 238, 248, 0.55);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.schema-upload:hover,
+.schema-upload:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.schema-upload.has-image {
+  border-style: solid;
+  min-height: 280px;
+}
+
+.schema-upload .upload-img {
+  object-fit: contain;
+  background: #0c0918;
+}
+
+.schema-upload .upload-label {
+  max-width: 28rem;
+  line-height: 1.45;
 }
 
 .person__name {
@@ -925,12 +1023,90 @@ img {
   background:
     radial-gradient(circle at 60% 40%, rgba(46, 196, 182, 0.2), transparent 50%),
     var(--media);
-  color: rgba(242, 238, 248, 0.4);
+  color: rgba(242, 238, 248, 0.55);
   display: grid;
   place-items: center;
   font-size: 0.8rem;
   letter-spacing: 0.04em;
   font-weight: 300;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: outline-color 0.15s ease, background-color 0.15s ease;
+  outline: 1px dashed transparent;
+  outline-offset: -6px;
+}
+
+.case__media:hover,
+.case__media:focus-visible {
+  outline-color: rgba(46, 196, 182, 0.65);
+  color: var(--accent);
+}
+
+.case__media.has-image {
+  outline: none;
+}
+
+.case__media-label,
+.upload-label {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  max-width: 90%;
+  pointer-events: none;
+}
+
+.case__media.has-image .case__media-label,
+.case__media.has-image .upload-label,
+[data-image].has-image > .upload-label {
+  display: none;
+}
+
+.case__media-img,
+.upload-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.case__media-img[hidden],
+.upload-img[hidden] {
+  display: none;
+}
+
+.case__media-clear,
+.upload-clear {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  appearance: none;
+  border: 1px solid rgba(242, 238, 248, 0.25);
+  background: rgba(12, 9, 24, 0.72);
+  color: #f2eef8;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.55rem;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.case__media-clear:hover,
+.upload-clear:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.case__media-clear[hidden],
+.upload-clear[hidden] {
+  display: none;
 }
 
 .case--featured .case__media {

@@ -37,19 +37,22 @@
         <button type="button" class="btn btn--ghost" id="btn-reset">Reset borrador</button>
       </div>
       <p class="panel__hint">
-        Los cambios se guardan en este navegador. Exporta el archivo y compártelo con el equipo / diseñadora.
+        Textos y fotos (equipo, portafolio, esquema) se guardan en este navegador.
+        Los pendientes se marcan solos al completar cada ítem.
       </p>
     </div>
 
     <div class="panel__decision">
       <h2>Pendientes del workshop</h2>
-      <ul>
-        <li>Frase promesa / diferencial inspirador</li>
-        <li>Paquetizar mejor Servicio 2</li>
-        <li>Testimonios + permisos de logos</li>
-        <li>Sesión de fotos del equipo</li>
-        <li>1ª entrada del Blog/Lab</li>
-        <li>Material de portafolio (fotos, registro)</li>
+      <p class="panel__pending-meta" id="pending-meta">Se marcan solos al completar cada ítem</p>
+      <ul id="pending-list">
+        <li data-pending="promesa">Frase promesa / diferencial inspirador</li>
+        <li data-pending="servicio2">Paquetizar mejor Servicio 2</li>
+        <li data-pending="testimonio">Testimonios + permisos de logos</li>
+        <li data-pending="equipo">Fotos e integrantes del equipo</li>
+        <li data-pending="esquema">Esquema del proceso (imagen)</li>
+        <li data-pending="lab">1ª entrada del Blog/Lab</li>
+        <li data-pending="portafolio">Material de portafolio (fotos)</li>
       </ul>
     </div>
   </aside>
@@ -177,6 +180,16 @@
           <p data-field="como.key4_texto" data-section="como-trabajamos" data-label="Paso 04 · texto">El proceso no es lineal: la experiencia alimenta de nuevo la investigación y la comunicación.</p>
         </article>
       </div>
+
+      <div
+        class="schema-upload"
+        data-image="como.esquema"
+        data-image-label="Esquema del proceso"
+      >
+        <span class="upload-label">Inserte aquí una imagen · esquema / línea de tiempo del proceso</span>
+        <img class="upload-img" alt="" hidden />
+        <button type="button" class="upload-clear" hidden>Quitar</button>
+      </div>
     </section>
 
     <!-- 03 QUIÉNES SOMOS -->
@@ -195,20 +208,32 @@
 
       <div class="identity-grid">
         <div class="identity-block">
-          <h3>Equipo <span class="hint">· sesión de fotos pendiente</span></h3>
+          <h3>Equipo <span class="hint" id="equipo-hint">· clic en cada foto para subir</span></h3>
           <div class="people">
             <div class="person">
-              <div class="person__photo"></div>
+              <div class="person__photo" data-image="quienes.p1" data-image-label="Integrante 1">
+                <span class="upload-label">Subir foto</span>
+                <img class="upload-img" alt="" hidden />
+                <button type="button" class="upload-clear" hidden>Quitar</button>
+              </div>
               <p class="person__name" data-field="quienes.p1_nombre" data-section="quienes-somos" data-label="Integrante 1 · nombre">Integrante</p>
               <p class="person__role" data-field="quienes.p1_rol" data-section="quienes-somos" data-label="Integrante 1 · rol">[Mirada / perfil]</p>
             </div>
             <div class="person">
-              <div class="person__photo"></div>
+              <div class="person__photo" data-image="quienes.p2" data-image-label="Integrante 2">
+                <span class="upload-label">Subir foto</span>
+                <img class="upload-img" alt="" hidden />
+                <button type="button" class="upload-clear" hidden>Quitar</button>
+              </div>
               <p class="person__name" data-field="quienes.p2_nombre" data-section="quienes-somos" data-label="Integrante 2 · nombre">Integrante</p>
               <p class="person__role" data-field="quienes.p2_rol" data-section="quienes-somos" data-label="Integrante 2 · rol">[Mirada / perfil]</p>
             </div>
             <div class="person">
-              <div class="person__photo"></div>
+              <div class="person__photo" data-image="quienes.p3" data-image-label="Integrante 3">
+                <span class="upload-label">Subir foto</span>
+                <img class="upload-img" alt="" hidden />
+                <button type="button" class="upload-clear" hidden>Quitar</button>
+              </div>
               <p class="person__name" data-field="quienes.p3_nombre" data-section="quienes-somos" data-label="Integrante 3 · nombre">Integrante</p>
               <p class="person__role" data-field="quienes.p3_rol" data-section="quienes-somos" data-label="Integrante 3 · rol">[Mirada / perfil]</p>
             </div>
@@ -308,7 +333,11 @@
 
       <div class="portfolio">
         <article class="case case--featured">
-          <div class="case__media"><span>Producto + proceso creativo</span></div>
+          <div class="case__media" data-image="portafolio.featured" data-image-label="Caso destacado">
+            <span class="upload-label">Clic para subir foto · Producto + proceso</span>
+            <img class="upload-img" alt="" hidden />
+            <button type="button" class="upload-clear" hidden>Quitar</button>
+          </div>
           <div class="case__body">
             <p class="case__tag" data-field="portafolio.caso_tag" data-section="portafolio" data-label="Caso destacado · etiqueta">Caso · ej. Librillo Beauchef / A2C</p>
             <h3 data-field="portafolio.caso_titulo" data-section="portafolio" data-label="Caso destacado · título">Estructura de caso</h3>
@@ -316,26 +345,43 @@
           </div>
         </article>
         <article class="case">
-          <div class="case__media"><span>Documental</span></div>
+          <div class="case__media" data-image="portafolio.doc" data-image-label="Documental">
+            <span class="upload-label">Clic para subir · Documental</span>
+            <img class="upload-img" alt="" hidden />
+            <button type="button" class="upload-clear" hidden>Quitar</button>
+          </div>
           <h3 data-field="portafolio.d1_titulo" data-section="portafolio" data-label="Caso documental · título">Título</h3>
           <p data-field="portafolio.d1_texto" data-section="portafolio" data-label="Caso documental · texto">Historia y efecto en el espectador</p>
         </article>
         <article class="case">
-          <div class="case__media"><span>Gráfica</span></div>
+          <div class="case__media" data-image="portafolio.grafica" data-image-label="Gráfica">
+            <span class="upload-label">Clic para subir · Gráfica</span>
+            <img class="upload-img" alt="" hidden />
+            <button type="button" class="upload-clear" hidden>Quitar</button>
+          </div>
           <h3 data-field="portafolio.g1_titulo" data-section="portafolio" data-label="Caso gráfica · título">Título</h3>
           <p data-field="portafolio.g1_texto" data-section="portafolio" data-label="Caso gráfica · texto">Visualización de lo complejo</p>
         </article>
         <article class="case">
-          <div class="case__media"><span>Redes</span></div>
+          <div class="case__media" data-image="portafolio.redes" data-image-label="Redes">
+            <span class="upload-label">Clic para subir · Redes</span>
+            <img class="upload-img" alt="" hidden />
+            <button type="button" class="upload-clear" hidden>Quitar</button>
+          </div>
           <h3 data-field="portafolio.r1_titulo" data-section="portafolio" data-label="Caso redes · título">Título</h3>
           <p data-field="portafolio.r1_texto" data-section="portafolio" data-label="Caso redes · texto">Consumo rápido con profundidad</p>
         </article>
         <article class="case">
-          <div class="case__media"><span>Registro</span></div>
+          <div class="case__media" data-image="portafolio.registro" data-image-label="Registro">
+            <span class="upload-label">Clic para subir · Registro</span>
+            <img class="upload-img" alt="" hidden />
+            <button type="button" class="upload-clear" hidden>Quitar</button>
+          </div>
           <h3 data-field="portafolio.reg1_titulo" data-section="portafolio" data-label="Caso registro · título">Título</h3>
           <p data-field="portafolio.reg1_texto" data-section="portafolio" data-label="Caso registro · texto">Narrativa sobre el “puro registro”</p>
         </article>
       </div>
+      <input type="file" id="image-picker" accept="image/*" hidden />
     </section>
 
     <!-- 06 BLOG / LAB -->
