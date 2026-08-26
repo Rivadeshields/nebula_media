@@ -1,35 +1,29 @@
 /**
- * Nébula — editor colaborativo
- * Carga content.json del repo; "Guardar en GitHub" publica textos e imágenes.
+ * Nébula — editor en equipo (sin GitHub para quienes editan)
+ * Guarda en Supabase; el equipo solo pulsa "Guardar".
  */
 (() => {
   const STORAGE_KEY = "nebula-copy-v1";
   const IMAGES_KEY = "nebula-images-v1";
-  const TOKEN_KEY = "nebula-gh-token";
+  const NAME_KEY = "nebula-editor-name";
   const MAX_IMAGE_SIDE = 1400;
   const JPEG_QUALITY = 0.78;
-  const DEFAULT_REPO = { owner: "Rivadeshields", repo: "nebula_media", branch: "main" };
+  const POLL_MS = 20000;
+  const ROW_ID = 1;
 
+  const cfg = () => window.NEBULA_CONFIG || {};
   const statusEl = () => document.getElementById("editor-status");
-  const githubStatusEl = () => document.getElementById("github-status");
 
   let activeImageSlot = null;
   let images = {};
   const defaults = {};
   let saving = false;
+  let lastRemoteUpdatedAt = null;
+  let pollTimer = null;
 
-  function detectRepo() {
-    const host = location.hostname.toLowerCase();
-    if (host.endsWith(".github.io")) {
-      const owner = host.split(".")[0];
-      const parts = location.pathname.split("/").filter(Boolean);
-      const repo = parts[0] || `${owner}.github.io`;
-      return { owner, repo, branch: "main" };
-    }
-    return { ...DEFAULT_REPO };
+  function isConfigured() {
+    return Boolean(cfg().supabaseUrl && cfg().supabaseAnonKey);
   }
-
-  const REPO = detectRepo();
 
   function fields() {
     return [...document.querySelectorAll("[data-field]")];
@@ -60,13 +54,8 @@
   function changed(key) {
     const now = fieldText(key);
     const original = defaults[key];
-    if (!now) return false;
-    if (isPlaceholder(now)) return false;
+    if (!now || isPlaceholder(now)) return false;
     return now !== original;
-  }
-
-  function isDataUrl(value) {
-    return typeof value === "string" && value.startsWith("data:");
   }
 
   function hasImage(key) {
@@ -98,29 +87,6 @@
   function setStatus(msg) {
     const el = statusEl();
     if (el) el.textContent = msg;
-  }
-
-  function getToken() {
-    return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || "";
-  }
-
-  function setToken(token) {
-    sessionStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(TOKEN_KEY, token);
-  }
-
-  function clearToken() {
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-  }
-
-  function updateGithubStatus(extra) {
-    const el = githubStatusEl();
-    if (!el) return;
-    const token = getToken();
-    el.textContent = token
-      ? `GitHub: conectado · ${REPO.owner}/${REPO.repo}${extra ? ` · ${extra}` : ""}`
-      : `GitHub: no conectado${extra ? ` · ${extra}` : ""}`;
   }
 
   function paintImageSlot(slot, value) {
@@ -155,7 +121,7 @@
       localStorage.setItem(IMAGES_KEY, JSON.stringify(images));
       return true;
     } catch {
-      setStatus("No se pudo guardar el borrador local (¿imágenes muy pesadas?)");
+      setStatus("Borrador local demasiado pesado (prueba imágenes más livianas)");
       return false;
     }
   }
@@ -190,7 +156,6 @@
       const check = pendingChecks[id];
       const done = check ? Boolean(check()) : false;
       li.classList.toggle("is-done", done);
-      li.setAttribute("aria-checked", done ? "true" : "false");
       if (done) doneCount += 1;
     }
     const meta = document.getElementById("pending-meta");
@@ -204,53 +169,205 @@
     if (hint) {
       const photos = ["quienes.p1", "quienes.p2", "quienes.p3"].filter(hasImage).length;
       hint.textContent =
-        photos === 3
-          ? "· fotos listas"
-          : photos > 0
-            ? `· ${photos}/3 fotos`
-            : "· clic en cada foto para subir";
+        photos === 3 ? "· fotos listas" : photos > 0 ? `· ${photos}/3 fotos` : "· clic en cada foto para subir";
     }
   }
 
-  async function loadSharedContent() {
+  async function supabaseFetch(path, options = {}) {
+    const { supabaseUrl, supabaseAnonKey } = cfg();
+    const res = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+      ...options,
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        "Content-Type": "application/json",
+        Prefer: options.prefer || "return=representation",
+        ...(options.headers || {}),
+      },
+    });
+    const text = await res.text();
+    let data = null;
     try {
-      const res = await fetch(`content.json?t=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) return false;
-      const payload = await res.json();
-      if (payload.fields && Object.keys(payload.fields).length) {
-        apply(payload.fields);
-      }
-      if (payload.images && Object.keys(payload.images).length) {
-        applyImages(payload.images);
-      }
-      if (payload.updatedAt) {
-        const when = new Date(payload.updatedAt).toLocaleString("es-CL");
-        setStatus(`Contenido del repo · ${when}${payload.updatedBy ? ` · ${payload.updatedBy}` : ""}`);
-      }
-      return true;
+      data = text ? JSON.parse(text) : null;
     } catch {
-      return false;
+      data = text;
     }
+    if (!res.ok) {
+      const msg = data?.message || data?.error_description || data || `Error ${res.status}`;
+      throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    }
+    return data;
   }
 
-  function loadLocalDraft() {
+  function applyRemoteRow(row) {
+    if (!row) return false;
+    const payload = row.payload || {};
+    if (payload.fields) apply(payload.fields);
+    if (payload.images) applyImages(payload.images);
+    lastRemoteUpdatedAt = row.updated_at || null;
+    const when = row.updated_at ? new Date(row.updated_at).toLocaleString("es-CL") : "";
+    const by = row.updated_by ? ` · ${row.updated_by}` : "";
+    if (when) setStatus(`Guardado compartido${by} · ${when}`);
+    saveLocalDraft();
+    updatePendings();
+    return true;
+  }
+
+  async function loadShared() {
+    if (!isConfigured()) return false;
+    const rows = await supabaseFetch(`nebula_content?id=eq.${ROW_ID}&select=*`);
+    if (Array.isArray(rows) && rows[0]) {
+      applyRemoteRow(rows[0]);
+      return true;
+    }
+    return false;
+  }
+
+  async function saveShared() {
+    if (saving) return;
+    if (!isConfigured()) {
+      setStatus("Aún no está el espacio compartido. Quien administra el proyecto debe completar config.js (ver SETUP.md).");
+      return;
+    }
+
+    const password = cfg().teamPassword || "";
+    const inputPass = document.getElementById("team-password");
+    if (password) {
+      if ((inputPass?.value || "") !== password) {
+        setStatus("Clave del equipo incorrecta");
+        return;
+      }
+      sessionStorage.setItem("nebula-team-ok", "1");
+    }
+
+    const nameInput = document.getElementById("editor-name");
+    const name = (nameInput?.value || "").trim() || "Alguien del equipo";
+    localStorage.setItem(NAME_KEY, name);
+
+    saving = true;
+    const btn = document.getElementById("btn-save");
+    if (btn) btn.disabled = true;
+    setStatus("Guardando para el equipo…");
+
+    const payload = {
+      fields: collect(),
+      images,
+    };
+    const body = {
+      id: ROW_ID,
+      payload,
+      updated_at: new Date().toISOString(),
+      updated_by: name,
+    };
+
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const rawImages = localStorage.getItem(IMAGES_KEY);
-      if (!raw && !rawImages) return false;
-      if (raw) apply(JSON.parse(raw));
-      if (rawImages) applyImages(JSON.parse(rawImages));
-      return true;
-    } catch {
-      return false;
+      // Upsert: try PATCH first, then INSERT if missing
+      const existing = await supabaseFetch(`nebula_content?id=eq.${ROW_ID}&select=id`);
+      if (Array.isArray(existing) && existing.length) {
+        await supabaseFetch(`nebula_content?id=eq.${ROW_ID}`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+      } else {
+        await supabaseFetch("nebula_content", {
+          method: "POST",
+          body: JSON.stringify(body),
+          prefer: "return=representation",
+        });
+      }
+      lastRemoteUpdatedAt = body.updated_at;
+      saveLocalDraft();
+      updatePendings();
+      setStatus(`Guardado · visible para el equipo · ${name} · ${new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`No se pudo guardar: ${err.message}`);
+    } finally {
+      saving = false;
+      if (btn) btn.disabled = false;
     }
   }
 
-  function resetLocal() {
-    if (!confirm("¿Borrar solo el borrador local de este navegador? (no afecta GitHub)")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(IMAGES_KEY);
-    location.reload();
+  async function pollRemote() {
+    if (!isConfigured() || saving || document.hidden) return;
+    try {
+      const rows = await supabaseFetch(
+        `nebula_content?id=eq.${ROW_ID}&select=updated_at,updated_by,payload`
+      );
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (!row?.updated_at) return;
+      if (lastRemoteUpdatedAt && row.updated_at !== lastRemoteUpdatedAt) {
+        applyRemoteRow(row);
+        setStatus(`Actualizado por ${row.updated_by || "el equipo"} · ${new Date(row.updated_at).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`);
+      } else if (!lastRemoteUpdatedAt) {
+        lastRemoteUpdatedAt = row.updated_at;
+      }
+    } catch {
+      // silent poll failures
+    }
+  }
+
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("Archivo de imagen inválido"));
+        img.onload = () => {
+          let { width, height } = img;
+          const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height));
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleImageFile(file) {
+    if (!activeImageSlot || !file) return;
+    if (!file.type.startsWith("image/")) {
+      setStatus("Elige un archivo de imagen");
+      return;
+    }
+    const key = activeImageSlot.dataset.image;
+    setStatus("Procesando imagen…");
+    try {
+      const dataUrl = await compressImage(file);
+      images[key] = dataUrl;
+      paintImageSlot(activeImageSlot, dataUrl);
+      saveLocalDraft();
+      updatePendings();
+      setStatus("Imagen lista · pulsa Guardar para compartirla con el equipo");
+    } catch (err) {
+      setStatus(err.message || "No se pudo subir la imagen");
+    } finally {
+      activeImageSlot = null;
+    }
+  }
+
+  function clearImage(slot, event) {
+    event?.stopPropagation();
+    delete images[slot.dataset.image];
+    paintImageSlot(slot, null);
+    saveLocalDraft();
+    updatePendings();
+    setStatus("Imagen quitada · pulsa Guardar para compartir el cambio");
+  }
+
+  function openPicker(slot) {
+    activeImageSlot = slot;
+    const picker = document.getElementById("image-picker");
+    if (!picker) return;
+    picker.value = "";
+    picker.click();
   }
 
   function sectionTitle(id) {
@@ -278,14 +395,13 @@
   }
 
   function toMarkdown() {
-    const groups = grouped();
     const lines = [
       "# Nébula Media — Copy para diseñadora",
       "",
       `_Exportado: ${new Date().toLocaleString("es-CL")}_`,
       "",
     ];
-    for (const [section, items] of Object.entries(groups)) {
+    for (const [section, items] of Object.entries(grouped())) {
       lines.push(`## ${sectionTitle(section)}`, "");
       for (const item of items) {
         lines.push(`### ${item.label}`, "", item.value || "_(vacío)_", "");
@@ -304,238 +420,13 @@
     URL.revokeObjectURL(url);
   }
 
-  function compressImage(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-      reader.onload = () => {
-        const img = new Image();
-        img.onerror = () => reject(new Error("Archivo de imagen inválido"));
-        img.onload = () => {
-          let { width, height } = img;
-          const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height));
-          width = Math.round(width * scale);
-          height = Math.round(height * scale);
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
-        };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function githubApi(path, options = {}) {
-    const token = getToken();
-    if (!token) throw new Error("Conecta GitHub antes de guardar");
-    const res = await fetch(`https://api.github.com${path}`, {
-      ...options,
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...(options.headers || {}),
-      },
-    });
-    const text = await res.text();
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = { raw: text };
-    }
-    if (!res.ok) {
-      const msg = data?.message || `Error GitHub ${res.status}`;
-      throw new Error(msg);
-    }
-    return data;
-  }
-
-  function safeUploadName(key) {
-    return key.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
-  }
-
-  function dataUrlToBase64(dataUrl) {
-    const parts = dataUrl.split(",");
-    return parts[1] || "";
-  }
-
-  function utf8ToBase64(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-
-  async function createBlob(content, encoding) {
-    return githubApi(`/repos/${REPO.owner}/${REPO.repo}/git/blobs`, {
-      method: "POST",
-      body: JSON.stringify({ content, encoding }),
-    });
-  }
-
-  async function saveToGithub() {
-    if (saving) return;
-    if (!getToken()) {
-      openGithubModal();
-      setStatus("Conecta GitHub para publicar los cambios");
-      return;
-    }
-
-    saving = true;
-    const btn = document.getElementById("btn-save-github");
-    if (btn) btn.disabled = true;
-    setStatus("Publicando en GitHub…");
-
-    try {
-      const me = await githubApi("/user");
-      const login = me.login || "equipo";
-
-      const imagePaths = {};
-      const treeItems = [];
-
-      for (const [key, value] of Object.entries(images)) {
-        if (!value) continue;
-        if (isDataUrl(value)) {
-          const path = `uploads/${safeUploadName(key)}.jpg`;
-          const blob = await createBlob(dataUrlToBase64(value), "base64");
-          treeItems.push({ path, mode: "100644", type: "blob", sha: blob.sha });
-          imagePaths[key] = path;
-        } else {
-          imagePaths[key] = value;
-        }
-      }
-
-      const payload = {
-        updatedAt: new Date().toISOString(),
-        updatedBy: login,
-        fields: collect(),
-        images: imagePaths,
-      };
-      const contentBlob = await createBlob(utf8ToBase64(JSON.stringify(payload, null, 2)), "base64");
-      treeItems.push({
-        path: "content.json",
-        mode: "100644",
-        type: "blob",
-        sha: contentBlob.sha,
-      });
-
-      const ref = await githubApi(`/repos/${REPO.owner}/${REPO.repo}/git/ref/heads/${REPO.branch}`);
-      const parentSha = ref.object.sha;
-      const parentCommit = await githubApi(`/repos/${REPO.owner}/${REPO.repo}/git/commits/${parentSha}`);
-
-      const tree = await githubApi(`/repos/${REPO.owner}/${REPO.repo}/git/trees`, {
-        method: "POST",
-        body: JSON.stringify({
-          base_tree: parentCommit.tree.sha,
-          tree: treeItems,
-        }),
-      });
-
-      const commit = await githubApi(`/repos/${REPO.owner}/${REPO.repo}/git/commits`, {
-        method: "POST",
-        body: JSON.stringify({
-          message: `Update workshop content (${login})`,
-          tree: tree.sha,
-          parents: [parentSha],
-        }),
-      });
-
-      await githubApi(`/repos/${REPO.owner}/${REPO.repo}/git/refs/heads/${REPO.branch}`, {
-        method: "PATCH",
-        body: JSON.stringify({ sha: commit.sha }),
-      });
-
-      applyImages(imagePaths);
-      saveLocalDraft();
-      updatePendings();
-      updateGithubStatus("publicado");
-      setStatus(`Guardado en GitHub · ${new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })} · Pages puede tardar ~1 min`);
-    } catch (err) {
-      console.error(err);
-      setStatus(`Error al guardar: ${err.message}`);
-      if (/Bad credentials|401|403|Resource not accessible/i.test(err.message)) {
-        updateGithubStatus("revisa el token");
-        openGithubModal();
-      }
-    } finally {
-      saving = false;
-      if (btn) btn.disabled = false;
-    }
-  }
-
-  async function handleImageFile(file) {
-    if (!activeImageSlot || !file) return;
-    if (!file.type.startsWith("image/")) {
-      setStatus("Elige un archivo de imagen");
-      return;
-    }
-    const key = activeImageSlot.dataset.image;
-    setStatus("Procesando imagen…");
-    try {
-      const dataUrl = await compressImage(file);
-      images[key] = dataUrl;
-      paintImageSlot(activeImageSlot, dataUrl);
-      saveLocalDraft();
-      updatePendings();
-      setStatus("Imagen lista · pulsa “Guardar en GitHub” para publicarla");
-    } catch (err) {
-      setStatus(err.message || "No se pudo subir la imagen");
-    } finally {
-      activeImageSlot = null;
-    }
-  }
-
-  function clearImage(slot, event) {
-    event?.stopPropagation();
-    const key = slot.dataset.image;
-    delete images[key];
-    paintImageSlot(slot, null);
-    saveLocalDraft();
-    updatePendings();
-    setStatus("Imagen quitada · guarda en GitHub para publicar el cambio");
-  }
-
-  function openPicker(slot) {
-    activeImageSlot = slot;
-    const picker = document.getElementById("image-picker");
-    if (!picker) return;
-    picker.value = "";
-    picker.click();
-  }
-
-  function openGithubModal() {
-    const modal = document.getElementById("github-modal");
-    const input = document.getElementById("github-token");
-    const disconnect = document.getElementById("btn-github-disconnect");
-    if (!modal) return;
-    modal.hidden = false;
-    if (input) input.value = getToken();
-    if (disconnect) disconnect.hidden = !getToken();
-  }
-
-  function closeGithubModal() {
-    const modal = document.getElementById("github-modal");
-    if (modal) modal.hidden = true;
-  }
-
   function wireImages() {
-    const picker = document.getElementById("image-picker");
-    picker?.addEventListener("change", () => {
-      const file = picker.files && picker.files[0];
-      handleImageFile(file);
+    document.getElementById("image-picker")?.addEventListener("change", () => {
+      handleImageFile(document.getElementById("image-picker").files?.[0]);
     });
-
     for (const slot of imageSlots()) {
       slot.setAttribute("role", "button");
       slot.setAttribute("tabindex", "0");
-      slot.setAttribute(
-        "aria-label",
-        `Subir imagen: ${slot.dataset.imageLabel || slot.dataset.image}`
-      );
-
       slot.addEventListener("click", (e) => {
         if (e.target.closest(".upload-clear")) return;
         openPicker(slot);
@@ -546,42 +437,8 @@
           openPicker(slot);
         }
       });
-
       slot.querySelector(".upload-clear")?.addEventListener("click", (e) => clearImage(slot, e));
     }
-  }
-
-  function wireGithubModal() {
-    document.getElementById("btn-connect-github")?.addEventListener("click", openGithubModal);
-    document.getElementById("btn-github-cancel")?.addEventListener("click", closeGithubModal);
-    document.getElementById("btn-github-disconnect")?.addEventListener("click", () => {
-      clearToken();
-      updateGithubStatus();
-      closeGithubModal();
-      setStatus("GitHub desconectado en este navegador");
-    });
-    document.getElementById("btn-github-save-token")?.addEventListener("click", async () => {
-      const input = document.getElementById("github-token");
-      const token = (input?.value || "").trim();
-      if (!token) {
-        setStatus("Pega un token válido");
-        return;
-      }
-      setToken(token);
-      try {
-        const me = await githubApi("/user");
-        updateGithubStatus(me.login);
-        closeGithubModal();
-        setStatus(`Conectado como ${me.login}`);
-      } catch (err) {
-        clearToken();
-        updateGithubStatus();
-        setStatus(`Token inválido: ${err.message}`);
-      }
-    });
-    document.getElementById("github-modal")?.addEventListener("click", (e) => {
-      if (e.target.id === "github-modal") closeGithubModal();
-    });
   }
 
   function wire() {
@@ -595,7 +452,7 @@
           saveLocalDraft();
           updatePendings();
         }, 400);
-        setStatus("Editando… (borrador local) · Guardar en GitHub para publicar");
+        setStatus("Editando… · pulsa Guardar para compartir");
         updatePendings();
       });
       el.addEventListener("blur", () => {
@@ -604,14 +461,26 @@
       });
     }
 
-    document.getElementById("btn-save-github")?.addEventListener("click", saveToGithub);
+    const nameInput = document.getElementById("editor-name");
+    if (nameInput) nameInput.value = localStorage.getItem(NAME_KEY) || "";
+
+    const pass = cfg().teamPassword || "";
+    const passInput = document.getElementById("team-password");
+    const passLabel = document.getElementById("team-password-label");
+    if (pass && passInput && passLabel) {
+      passInput.hidden = false;
+      passLabel.hidden = false;
+      if (sessionStorage.getItem("nebula-team-ok") === "1") {
+        passInput.value = pass;
+      }
+    }
+
+    document.getElementById("btn-save")?.addEventListener("click", saveShared);
     document.getElementById("btn-export-md")?.addEventListener("click", () => {
-      saveLocalDraft();
       download("nebula-copy.md", toMarkdown(), "text/markdown;charset=utf-8");
       setStatus("Exportado · Markdown");
     });
     document.getElementById("btn-export-json")?.addEventListener("click", () => {
-      saveLocalDraft();
       download(
         "nebula-copy.json",
         JSON.stringify({ fields: collect(), images: Object.keys(images) }, null, 2),
@@ -619,29 +488,54 @@
       );
       setStatus("Exportado · JSON");
     });
-    document.getElementById("btn-reset")?.addEventListener("click", resetLocal);
+    document.getElementById("btn-reset")?.addEventListener("click", () => {
+      if (!confirm("¿Borrar borrador local de este navegador?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(IMAGES_KEY);
+      location.reload();
+    });
 
     document.querySelectorAll("a[data-field]").forEach((a) => {
       a.addEventListener("click", (e) => e.preventDefault());
     });
 
     wireImages();
-    wireGithubModal();
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
     captureDefaults();
     wire();
-    updateGithubStatus();
 
-    const shared = await loadSharedContent();
-    if (!shared) {
-      loadLocalDraft();
-      setStatus("Sin content.json remoto · usando HTML / borrador local");
-    } else {
-      // Local draft can override only if newer edits exist — keep shared as source of truth for collaboration
-      saveLocalDraft();
+    if (!isConfigured()) {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const rawImages = localStorage.getItem(IMAGES_KEY);
+        if (raw) apply(JSON.parse(raw));
+        if (rawImages) applyImages(JSON.parse(rawImages));
+      } catch {
+        /* ignore */
+      }
+      setStatus("Modo local · falta configurar el espacio compartido (SETUP.md)");
+      updatePendings();
+      return;
+    }
+
+    try {
+      const ok = await loadShared();
+      if (!ok) setStatus("Espacio compartido vacío · edita y pulsa Guardar");
+    } catch (err) {
+      setStatus(`No se pudo cargar el espacio compartido: ${err.message}`);
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) apply(JSON.parse(raw));
+      } catch {
+        /* ignore */
+      }
     }
     updatePendings();
+    pollTimer = setInterval(pollRemote, POLL_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) pollRemote();
+    });
   });
 })();

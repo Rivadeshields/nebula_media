@@ -179,9 +179,38 @@ img {
   font-weight: 300;
 }
 
-.panel__status--muted {
-  opacity: 0.75;
+.panel__field-label {
+  display: block;
+  margin: 0.65rem 0 0.3rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.panel__input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  background: #0c0918;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.panel__input:focus {
+  outline: 1px solid var(--accent);
+}
+
+.panel__hint {
+  margin: 0.75rem 0 0;
   font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-weight: 300;
 }
 
 .modal {
