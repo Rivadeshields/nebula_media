@@ -44,23 +44,24 @@
       owner: c.owner || "Rivadeshields",
       repo: c.repo || "nebula_media",
       branch: c.branch || "main",
-      token: sessionStorage.getItem("nebula-publish-key") || "",
     };
   }
 
-  function isConfigured() {
-    // Always allow save attempt; token comes from the team key field
-    return true;
+  function getGithubToken() {
+    return (cfg().githubToken || "").trim();
   }
 
-  function getPublishKey() {
+  function validateTeamPassword() {
+    const expected = (cfg().teamPassword || "").trim();
+    if (!expected) return true;
+    if (sessionStorage.getItem("nebula-team-ok") === "1") return true;
     const input = document.getElementById("team-password");
     const typed = (input?.value || "").trim();
-    if (typed) {
-      sessionStorage.setItem("nebula-publish-key", typed);
-      return typed;
+    if (typed === expected) {
+      sessionStorage.setItem("nebula-team-ok", "1");
+      return true;
     }
-    return sessionStorage.getItem("nebula-publish-key") || "";
+    return false;
   }
 
   function fields() {
@@ -327,8 +328,8 @@
   }
 
   async function githubApi(path, options = {}) {
-    const token = getPublishKey() || repo().token;
-    if (!token) throw new Error("Escribe la clave del equipo antes de guardar");
+    const token = getGithubToken();
+    if (!token) throw new Error("Falta configurar el token de publicación (avisa a quien administra el proyecto)");
     const res = await fetch(`https://api.github.com${path}`, {
       ...options,
       headers: {
@@ -394,15 +395,24 @@
     if (saving) return;
 
     const nameInput = document.getElementById("editor-name");
-    const name = (nameInput?.value || "").trim() || "Alguien del equipo";
+    const name = (nameInput?.value || "").trim();
+    if (!name) {
+      setStatus("Elige quién eres (Nico, Tamara o Joaquín)");
+      nameInput?.focus();
+      return;
+    }
     localStorage.setItem(NAME_KEY, name);
 
-    const publishKey = getPublishKey();
-    const inputPass = document.getElementById("team-password");
-    if (inputPass) inputPass.hidden = false;
-    if (!publishKey) {
-      setStatus("Escribe la clave del equipo (la comparten por WhatsApp / mail) y pulsa Guardar");
-      inputPass?.focus();
+    const passInput = document.getElementById("team-password");
+    if (passInput) passInput.hidden = false;
+    if (!validateTeamPassword()) {
+      setStatus("Clave incorrecta · la clave del equipo es 1234");
+      passInput?.focus();
+      return;
+    }
+
+    if (!getGithubToken()) {
+      setStatus("Guardado compartido aún no activo · avisa a quien administra el repo");
       return;
     }
 
@@ -467,8 +477,7 @@
       showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
     } catch (err) {
       console.error(err);
-      sessionStorage.removeItem("nebula-publish-key");
-      setStatus(`No se pudo guardar: ${err.message}. Revisa la clave del equipo.`);
+      setStatus(`No se pudo guardar: ${err.message}`);
     } finally {
       saving = false;
       if (btn) btn.disabled = false;
@@ -678,12 +687,8 @@
     }
 
     const nameInput = document.getElementById("editor-name");
-    if (nameInput) nameInput.value = localStorage.getItem(NAME_KEY) || "";
-
-    const passInput = document.getElementById("team-password");
-    if (passInput && sessionStorage.getItem("nebula-publish-key")) {
-      passInput.placeholder = "Clave guardada en este navegador";
-    }
+    const savedName = localStorage.getItem(NAME_KEY) || "";
+    if (nameInput && savedName) nameInput.value = savedName;
 
     document.getElementById("btn-save")?.addEventListener("click", saveShared);
     document.getElementById("btn-undo")?.addEventListener("click", undo);
@@ -726,7 +731,7 @@
       } catch {
         /* ignore */
       }
-      setStatus("Listo · escribe la clave del equipo y pulsa Guardar");
+      setStatus("Listo · elige tu nombre, clave 1234, y Guardar");
     }
 
     updateAutoChecks();

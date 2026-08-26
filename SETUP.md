@@ -1,23 +1,22 @@
-# Clave del equipo (solo quien administra)
+# Para el equipo (Nico, Tamara, Joaquín)
 
-Los demás **no** crean tokens. Solo escriben la **clave del equipo** en la barra de la web y pulsan Guardar.
+1. Abrir https://rivadeshields.github.io/nebula_media/
+2. Elegir **quién eres** en el menú
+3. Clave: **1234**
+4. Editar y pulsar **Guardar**
 
-## 1. Revoca el token anterior (importante)
+No hace falta GitHub ni tokens.
 
-Si ya generaste uno y lo pegaste en el chat, revócalo:
-https://github.com/settings/personal-access-tokens
+---
 
-## 2. Crea un token nuevo
+# Solo quien administra (Rivadeshields)
 
-1. https://github.com/settings/personal-access-tokens/new  
-2. Solo repo `nebula_media`  
-3. Permission **Contents → Read and write**  
-4. Generate y copia el token (`github_pat_…`)
+Para que **Guardar** publique para todos, falta pegar el token de GitHub **una vez** en `config.js` en github.com:
 
-## 3. Úsalo como “clave del equipo”
+1. Crear token: https://github.com/settings/personal-access-tokens/new  
+   - Repo `nebula_media` · **Contents: Read and write**
+2. En github.com → repo → `config.js` → Edit  
+3. Pegar el token en `githubToken: "github_pat_…"`  
+4. Commit (si GitHub pide “allow secret”, aceptar)
 
-- En la web, campo **Clave del equipo**, pega el token.  
-- Comparte esa misma clave con el equipo por WhatsApp/mail.  
-- Cada persona la escribe una vez en su navegador (no va en GitHub).
-
-No la subas a `config.js`: GitHub bloquea el push si el token está en el código.
+La clave **1234** es solo para el equipo; el token es invisible para ellos.

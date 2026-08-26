@@ -100,6 +100,11 @@ body {
   font-size: 0.8rem;
 }
 
+.topbar__name--select {
+  width: 118px;
+  cursor: pointer;
+}
+
 .topbar__name--wide {
   width: 150px;
 }
