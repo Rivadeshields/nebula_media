@@ -14,6 +14,7 @@
   --font-display: "Outfit", system-ui, sans-serif;
   --font-body: "Outfit", system-ui, sans-serif;
   --font-serif: "Source Serif 4", Georgia, serif;
+  --topbar-h: 58px;
 }
 
 *,
@@ -35,6 +36,276 @@ body {
   grid-template-columns: minmax(240px, 300px) 1fr;
   min-height: 100vh;
   font-weight: 400;
+  padding-top: var(--topbar-h);
+}
+
+/* —— Topbar fija —— */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.85rem;
+  background: rgba(12, 9, 24, 0.94);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+
+.topbar__left,
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.topbar__right {
+  margin-left: auto;
+}
+
+.topbar__brand {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.topbar__status {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-weight: 300;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.topbar__name {
+  width: 110px;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  background: #0c0918;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.topbar__icon-btn {
+  position: relative;
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.topbar__icon-btn:hover,
+.topbar__icon-btn[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.topbar__badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0c0918;
+  font-size: 0.65rem;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+
+.topbar .btn {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.btn--tiny {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+/* Checklist dropdown */
+.checklist {
+  position: relative;
+}
+
+.checklist__panel {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  width: min(320px, calc(100vw - 1.5rem));
+  background: #1a1438;
+  border: 1px solid var(--line);
+  padding: 0.85rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.checklist__panel[hidden] {
+  display: none;
+}
+
+.checklist__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.checklist__list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  font-weight: 300;
+  line-height: 1.35;
+}
+
+.checklist__item.is-done span {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.checklist__item input {
+  margin-top: 0.15rem;
+  accent-color: var(--accent);
+}
+
+.checklist__add {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.checklist__add input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  background: #0c0918;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+/* Success interstitial */
+.success-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 70% 55% at 70% 30%, rgba(46, 196, 182, 0.22), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 20% 70%, rgba(107, 77, 154, 0.35), transparent 50%),
+    linear-gradient(165deg, #1e143f 0%, #120e28 55%, #0c0918 100%);
+  padding: 1.5rem;
+}
+
+.success-screen[hidden] {
+  display: none;
+}
+
+.success-screen__inner {
+  text-align: center;
+  max-width: 28rem;
+  animation: success-in 0.45s ease both;
+}
+
+.success-screen__inner img {
+  margin: 0 auto 1.5rem;
+  height: 48px;
+  width: auto;
+}
+
+.success-screen__eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.success-screen__title {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.success-screen__lead {
+  margin: 0 0 1.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  font-weight: 300;
+}
+
+.success-screen__bar {
+  height: 2px;
+  background: rgba(242, 238, 248, 0.12);
+  overflow: hidden;
+}
+
+.success-screen__bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  animation: success-bar 1.6s ease forwards;
+}
+
+@keyframes success-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes success-bar {
+  to {
+    width: 100%;
+  }
 }
 
 a {
@@ -51,8 +322,8 @@ img {
 /* —— Panel lateral —— */
 .panel {
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
   padding: 2rem 1.5rem;
   border-right: 1px solid var(--line);
   background: #100c22;
@@ -115,10 +386,9 @@ img {
 }
 
 .panel__tools {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  border: 1px solid var(--line);
-  background: var(--bg-elevated);
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.4rem;
 }
 
 .panel__tools-title {
@@ -393,7 +663,7 @@ img {
 
 .site-nav {
   position: sticky;
-  top: 0;
+  top: var(--topbar-h);
   z-index: 10;
   display: flex;
   align-items: center;
@@ -1388,9 +1658,19 @@ img {
     grid-template-columns: 1fr;
   }
 
+  .topbar__brand,
+  .topbar__status {
+    display: none;
+  }
+
+  .topbar__name {
+    width: 88px;
+  }
+
   .panel {
     position: relative;
     height: auto;
+    top: auto;
     border-right: none;
     border-bottom: 1px solid var(--line);
   }

@@ -10,12 +10,54 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="is-editing">
+  <div class="topbar" role="toolbar" aria-label="Barra de edición">
+    <div class="topbar__left">
+      <div class="checklist" id="checklist">
+        <button type="button" class="topbar__icon-btn" id="btn-checklist" aria-expanded="false" aria-controls="checklist-panel" title="Tareas pendientes">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M3 6l.8.8L5.8 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".35"/>
+          </svg>
+          <span class="topbar__badge" id="checklist-badge">0</span>
+        </button>
+        <div class="checklist__panel" id="checklist-panel" hidden>
+          <p class="checklist__title">Pendientes</p>
+          <ul class="checklist__list" id="checklist-list"></ul>
+          <form class="checklist__add" id="checklist-add-form">
+            <input type="text" id="checklist-input" placeholder="Agregar ítem…" maxlength="120" />
+            <button type="submit" class="btn btn--accent btn--tiny">Añadir</button>
+          </form>
+        </div>
+      </div>
+      <span class="topbar__brand">Nébula · workshop</span>
+    </div>
+
+    <p class="topbar__status" id="editor-status">Listo para editar</p>
+
+    <div class="topbar__right">
+      <input id="editor-name" class="topbar__name" type="text" maxlength="40" placeholder="Tu nombre" autocomplete="nickname" title="Tu nombre" />
+      <input id="team-password" class="topbar__name" type="password" maxlength="64" placeholder="Clave" autocomplete="off" hidden />
+      <button type="button" class="btn btn--ghost" id="btn-undo" title="Deshacer (hasta 3 pasos)">Deshacer</button>
+      <button type="button" class="btn btn--ghost" id="btn-reset-open" title="Volver al estado al abrir la página">Resetear</button>
+      <button type="button" class="btn btn--accent" id="btn-save">Guardar</button>
+    </div>
+  </div>
+
+  <div id="success-screen" class="success-screen" hidden>
+    <div class="success-screen__inner">
+      <img src="logo.png" alt="Nébula Media" width="180" height="54" />
+      <p class="success-screen__eyebrow">Workshop · contenido</p>
+      <h1 class="success-screen__title">Cambio aprobado exitosamente</h1>
+      <p class="success-screen__lead" id="success-detail">Tu edición ya está incorporada. Volvemos a la página para que la revises.</p>
+      <div class="success-screen__bar" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+
   <aside class="panel" aria-label="Notas de trabajo">
     <p class="panel__eyebrow">Workshop · Arquitectura v1</p>
     <h1 class="panel__title">Mapa de la web</h1>
     <p class="panel__lead">
-      Página provisional para redactar copy en contexto.
-      Edita los textos marcados; exporta Markdown o JSON para la diseñadora.
+      Edita en contexto. Usa la barra superior para guardar, deshacer o marcar pendientes.
     </p>
     <ol class="panel__nav">
       <li><a href="#inicio"><span>01</span> Inicio</a></li>
@@ -26,38 +68,9 @@
       <li><a href="#lab"><span>06</span> Blog / Lab</a></li>
       <li><a href="#footer"><span>07</span> Footer / RED</a></li>
     </ol>
-
-    <div class="panel__tools" aria-label="Herramientas de copy">
-      <p class="panel__tools-title">Edición en equipo</p>
-      <p id="editor-status" class="panel__status">Listo para editar</p>
-      <label class="panel__field-label" for="editor-name">Tu nombre</label>
-      <input id="editor-name" class="panel__input" type="text" maxlength="40" placeholder="Ej. Tamara" autocomplete="nickname" />
-      <label class="panel__field-label" for="team-password" id="team-password-label" hidden>Clave del equipo</label>
-      <input id="team-password" class="panel__input" type="password" maxlength="64" placeholder="Clave" autocomplete="off" hidden />
-      <div class="panel__actions">
-        <button type="button" class="btn btn--accent" id="btn-save">Guardar</button>
-        <button type="button" class="btn" id="btn-export-md">Exportar MD</button>
-        <button type="button" class="btn" id="btn-export-json">Exportar JSON</button>
-        <button type="button" class="btn btn--ghost" id="btn-reset">Reset local</button>
-      </div>
-      <p class="panel__hint">
-        Edita y pulsa <strong>Guardar</strong>. El resto del equipo recarga (o espera unos segundos) y ve los cambios.
-        No hace falta entrar a GitHub.
-      </p>
-    </div>
-
-    <div class="panel__decision">
-      <h2>Pendientes del workshop</h2>
-      <p class="panel__pending-meta" id="pending-meta">Se marcan solos al completar cada ítem</p>
-      <ul id="pending-list">
-        <li data-pending="promesa">Frase promesa / diferencial inspirador</li>
-        <li data-pending="servicio2">Paquetizar mejor Servicio 2</li>
-        <li data-pending="testimonio">Testimonios + permisos de logos</li>
-        <li data-pending="equipo">Fotos e integrantes del equipo</li>
-        <li data-pending="esquema">Esquema del proceso (imagen)</li>
-        <li data-pending="lab">1ª entrada del Blog/Lab</li>
-        <li data-pending="portafolio">Material de portafolio (fotos)</li>
-      </ul>
+    <div class="panel__tools">
+      <button type="button" class="btn" id="btn-export-md">Exportar MD</button>
+      <button type="button" class="btn" id="btn-export-json">Exportar JSON</button>
     </div>
   </aside>
 
