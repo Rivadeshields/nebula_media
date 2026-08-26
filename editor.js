@@ -1,7 +1,8 @@
 /**
  * Nébula workshop editor
- * Banner fijo: checklist + guardar / deshacer / resetear
- * Guardar → pantalla de éxito → volver con cambios
+ * Banner: checklist + guardar / deshacer / resetear
+ * Guardar → éxito → volver con cambios
+ * Espacio compartido: GitHub vía token en config.js (invisible para el equipo)
  */
 (() => {
   const STORAGE_KEY = "nebula-copy-v1";
@@ -10,8 +11,7 @@
   const CHECKLIST_KEY = "nebula-checklist-v1";
   const MAX_IMAGE_SIDE = 1400;
   const JPEG_QUALITY = 0.78;
-  const POLL_MS = 20000;
-  const ROW_ID = 1;
+  const POLL_MS = 15000;
   const HISTORY_LIMIT = 10;
   const SUCCESS_MS = 1800;
 
@@ -35,11 +35,21 @@
   let history = [];
   let checklist = [];
   let saving = false;
-  let lastRemoteUpdatedAt = null;
+  let lastContentHash = null;
   let applyingHistory = false;
 
+  function repo() {
+    const c = cfg();
+    return {
+      owner: c.owner || "Rivadeshields",
+      repo: c.repo || "nebula_media",
+      branch: c.branch || "main",
+      token: c.githubToken || "",
+    };
+  }
+
   function isConfigured() {
-    return Boolean(cfg().supabaseUrl && cfg().supabaseAnonKey);
+    return Boolean(repo().token);
   }
 
   function fields() {
@@ -51,10 +61,7 @@
   }
 
   function snapshot() {
-    return {
-      fields: collect(),
-      images: { ...images },
-    };
+    return { fields: collect(), images: { ...images } };
   }
 
   function captureDefaults() {
@@ -77,9 +84,8 @@
 
   function changed(key) {
     const now = fieldText(key);
-    const original = defaults[key];
     if (!now || isPlaceholder(now)) return false;
-    return now !== original;
+    return now !== defaults[key];
   }
 
   function hasImage(key) {
@@ -88,6 +94,10 @@
 
   function hasAnyImage(prefix) {
     return Object.keys(images).some((k) => k.startsWith(prefix));
+  }
+
+  function isDataUrl(value) {
+    return typeof value === "string" && value.startsWith("data:");
   }
 
   function collect() {
@@ -165,8 +175,7 @@
       return;
     }
     history.pop();
-    const prev = history[history.length - 1];
-    applySnapshot(prev);
+    applySnapshot(history[history.length - 1]);
     saveLocalDraft();
     setStatus(`Deshecho · quedan ${Math.max(0, history.length - 1)} pasos atrás`);
   }
@@ -216,8 +225,7 @@
     const badge = document.getElementById("checklist-badge");
     if (!list) return;
     list.innerHTML = "";
-    const pending = checklist.filter((c) => !c.done).length;
-    if (badge) badge.textContent = String(pending);
+    if (badge) badge.textContent = String(checklist.filter((c) => !c.done).length);
 
     checklist.forEach((item, index) => {
       const li = document.createElement("li");
@@ -263,23 +271,26 @@
       lab: () => changed("lab.e1_titulo") || changed("lab.e1_texto"),
       portafolio: () => hasAnyImage("portafolio."),
     };
-    let changedAuto = false;
+    let dirty = false;
     for (const item of checklist) {
       if (auto[item.id]) {
         const done = Boolean(auto[item.id]());
         if (item.done !== done) {
           item.done = done;
-          changedAuto = true;
+          dirty = true;
         }
       }
     }
-    if (changedAuto) saveLocalDraft();
+    if (dirty) saveLocalDraft();
   }
 
   function showSuccessThenReload(detail) {
     const screen = document.getElementById("success-screen");
     const detailEl = document.getElementById("success-detail");
-    if (detailEl) detailEl.textContent = detail || "Tu edición ya está incorporada. Volvemos a la página para que la revises.";
+    if (detailEl) {
+      detailEl.textContent =
+        detail || "Tu edición ya está incorporada. Volvemos a la página para que la revises.";
+    }
     if (screen) {
       screen.hidden = false;
       const bar = screen.querySelector(".success-screen__bar span");
@@ -291,7 +302,7 @@
     }
     setTimeout(async () => {
       try {
-        if (isConfigured()) await loadShared();
+        await loadSharedContent();
       } catch {
         /* keep current */
       }
@@ -304,15 +315,16 @@
     }, SUCCESS_MS);
   }
 
-  async function supabaseFetch(path, options = {}) {
-    const { supabaseUrl, supabaseAnonKey } = cfg();
-    const res = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+  async function githubApi(path, options = {}) {
+    const { token } = repo();
+    if (!token) throw new Error("Falta configurar el token en config.js (SETUP.md)");
+    const res = await fetch(`https://api.github.com${path}`, {
       ...options,
       headers: {
-        apikey: supabaseAnonKey,
-        Authorization: `Bearer ${supabaseAnonKey}`,
-        "Content-Type": "application/json",
-        Prefer: options.prefer || "return=representation",
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
         ...(options.headers || {}),
       },
     });
@@ -321,39 +333,55 @@
     try {
       data = text ? JSON.parse(text) : null;
     } catch {
-      data = text;
+      data = { raw: text };
     }
     if (!res.ok) {
-      const msg = data?.message || data?.error_description || data || `Error ${res.status}`;
-      throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      throw new Error(data?.message || `Error ${res.status}`);
     }
     return data;
   }
 
-  function applyRemoteRow(row) {
-    if (!row) return false;
-    const payload = row.payload || {};
-    apply(payload.fields || {});
-    applyImages(payload.images || {});
-    lastRemoteUpdatedAt = row.updated_at || null;
+  function safeUploadName(key) {
+    return key.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
+  }
+
+  function dataUrlToBase64(dataUrl) {
+    return (dataUrl.split(",")[1] || "");
+  }
+
+  function utf8ToBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  async function createBlob(content, encoding) {
+    const { owner, repo: name } = repo();
+    return githubApi(`/repos/${owner}/${name}/git/blobs`, {
+      method: "POST",
+      body: JSON.stringify({ content, encoding }),
+    });
+  }
+
+  async function loadSharedContent() {
+    const res = await fetch(`content.json?t=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return false;
+    const payload = await res.json();
+    const hash = JSON.stringify(payload);
+    if (payload.fields && Object.keys(payload.fields).length) apply(payload.fields);
+    if (payload.images) applyImages(payload.images);
+    lastContentHash = hash;
+    if (payload.updatedAt) {
+      const when = new Date(payload.updatedAt).toLocaleString("es-CL");
+      setStatus(`Contenido compartido${payload.updatedBy ? ` · ${payload.updatedBy}` : ""} · ${when}`);
+    }
     saveLocalDraft();
     updateAutoChecks();
     renderChecklist();
-    return true;
-  }
-
-  async function loadShared() {
-    if (!isConfigured()) return false;
-    const rows = await supabaseFetch(`nebula_content?id=eq.${ROW_ID}&select=*`);
-    if (Array.isArray(rows) && rows[0]) {
-      applyRemoteRow(rows[0]);
-      return true;
-    }
-    return false;
+    return Boolean(payload.fields && Object.keys(payload.fields).length);
   }
 
   async function saveShared() {
     if (saving) return;
+
     const nameInput = document.getElementById("editor-name");
     const name = (nameInput?.value || "").trim() || "Alguien del equipo";
     localStorage.setItem(NAME_KEY, name);
@@ -372,36 +400,68 @@
     const btn = document.getElementById("btn-save");
     if (btn) btn.disabled = true;
     setStatus("Guardando…");
-
     pushHistory();
     saveLocalDraft();
 
     try {
-      if (isConfigured()) {
-        const body = {
-          id: ROW_ID,
-          payload: { fields: collect(), images },
-          updated_at: new Date().toISOString(),
-          updated_by: name,
-        };
-        const existing = await supabaseFetch(`nebula_content?id=eq.${ROW_ID}&select=id`);
-        if (Array.isArray(existing) && existing.length) {
-          await supabaseFetch(`nebula_content?id=eq.${ROW_ID}`, {
-            method: "PATCH",
-            body: JSON.stringify(body),
-          });
-        } else {
-          await supabaseFetch("nebula_content", {
-            method: "POST",
-            body: JSON.stringify(body),
-          });
-        }
-        lastRemoteUpdatedAt = body.updated_at;
-        showSuccessThenReload(`Guardado por ${name}. El equipo ya puede ver este cambio.`);
-      } else {
-        // Local success so the UX can be tested before shared backend is configured
-        showSuccessThenReload(`Cambio guardado en este navegador${name ? ` · ${name}` : ""}. (Espacio compartido pendiente de configurar)`);
+      if (!isConfigured()) {
+        showSuccessThenReload(
+          `Cambio guardado en este navegador · ${name}. Para compartirlo con el equipo, completa SETUP.md (token).`
+        );
+        return;
       }
+
+      const { owner, repo: nameRepo, branch } = repo();
+      const me = await githubApi("/user");
+      const login = me.login || name;
+
+      const imagePaths = {};
+      const treeItems = [];
+
+      for (const [key, value] of Object.entries(images)) {
+        if (!value) continue;
+        if (isDataUrl(value)) {
+          const path = `uploads/${safeUploadName(key)}.jpg`;
+          const blob = await createBlob(dataUrlToBase64(value), "base64");
+          treeItems.push({ path, mode: "100644", type: "blob", sha: blob.sha });
+          imagePaths[key] = path;
+        } else {
+          imagePaths[key] = value;
+        }
+      }
+
+      const payload = {
+        updatedAt: new Date().toISOString(),
+        updatedBy: name || login,
+        fields: collect(),
+        images: imagePaths,
+      };
+      const contentBlob = await createBlob(utf8ToBase64(JSON.stringify(payload, null, 2)), "base64");
+      treeItems.push({ path: "content.json", mode: "100644", type: "blob", sha: contentBlob.sha });
+
+      const ref = await githubApi(`/repos/${owner}/${nameRepo}/git/ref/heads/${branch}`);
+      const parentSha = ref.object.sha;
+      const parentCommit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits/${parentSha}`);
+      const tree = await githubApi(`/repos/${owner}/${nameRepo}/git/trees`, {
+        method: "POST",
+        body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: treeItems }),
+      });
+      const commit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits`, {
+        method: "POST",
+        body: JSON.stringify({
+          message: `Workshop: update content (${name || login})`,
+          tree: tree.sha,
+          parents: [parentSha],
+        }),
+      });
+      await githubApi(`/repos/${owner}/${nameRepo}/git/refs/heads/${branch}`, {
+        method: "PATCH",
+        body: JSON.stringify({ sha: commit.sha }),
+      });
+
+      applyImages(imagePaths);
+      lastContentHash = JSON.stringify(payload);
+      showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
     } catch (err) {
       console.error(err);
       setStatus(`No se pudo guardar: ${err.message}`);
@@ -412,21 +472,24 @@
   }
 
   async function pollRemote() {
-    if (!isConfigured() || saving || document.hidden) return;
+    if (saving || document.hidden) return;
     try {
-      const rows = await supabaseFetch(
-        `nebula_content?id=eq.${ROW_ID}&select=updated_at,updated_by,payload`
-      );
-      const row = Array.isArray(rows) ? rows[0] : null;
-      if (!row?.updated_at) return;
-      if (lastRemoteUpdatedAt && row.updated_at !== lastRemoteUpdatedAt) {
-        applyRemoteRow(row);
+      const res = await fetch(`content.json?t=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const payload = await res.json();
+      const hash = JSON.stringify(payload);
+      if (lastContentHash && hash !== lastContentHash) {
+        if (payload.fields) apply(payload.fields);
+        if (payload.images) applyImages(payload.images);
+        lastContentHash = hash;
         openSnapshot = snapshot();
         history = [JSON.parse(JSON.stringify(openSnapshot))];
         updateUndoBtn();
-        setStatus(`Actualizado por ${row.updated_by || "el equipo"}`);
-      } else if (!lastRemoteUpdatedAt) {
-        lastRemoteUpdatedAt = row.updated_at;
+        updateAutoChecks();
+        renderChecklist();
+        setStatus(`Actualizado por ${payload.updatedBy || "el equipo"}`);
+      } else if (!lastContentHash) {
+        lastContentHash = hash;
       }
     } catch {
       /* ignore */
@@ -593,7 +656,6 @@
   }
 
   function wire() {
-    let timer;
     for (const el of fields()) {
       el.setAttribute("contenteditable", "true");
       el.setAttribute("spellcheck", "true");
@@ -601,8 +663,8 @@
         if (!applyingHistory) pushHistory();
       });
       el.addEventListener("input", () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
+        clearTimeout(el._nebulaTimer);
+        el._nebulaTimer = setTimeout(() => {
           saveLocalDraft();
           updateAutoChecks();
           renderChecklist();
@@ -649,17 +711,21 @@
     renderChecklist();
 
     try {
-      if (isConfigured()) {
-        await loadShared();
-      } else {
+      await loadSharedContent();
+    } catch {
+      try {
         const raw = localStorage.getItem(STORAGE_KEY);
         const rawImages = localStorage.getItem(IMAGES_KEY);
         if (raw) apply(JSON.parse(raw));
         if (rawImages) applyImages(JSON.parse(rawImages));
-        setStatus("Listo · Guardar funciona en este navegador (compartido pendiente)");
+      } catch {
+        /* ignore */
       }
-    } catch (err) {
-      setStatus(`No se pudo cargar: ${err.message}`);
+      setStatus(
+        isConfigured()
+          ? "Listo para editar"
+          : "Listo · Guardar funciona aquí; para el equipo completa SETUP.md"
+      );
     }
 
     updateAutoChecks();

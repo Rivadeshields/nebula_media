@@ -1,8 +1,16 @@
-// Configuración del espacio compartido (solo la persona que administra el proyecto).
-// Los demás usuarios NO editan este archivo: solo abren la web y pulsan Guardar.
+// Solo quien administra completa esto UNA vez.
+// El resto del equipo solo abre la web y pulsa Guardar (no ve GitHub).
 
 window.NEBULA_CONFIG = {
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  // Token fine-grained con Contents: Read and write SOLO en nebula_media
+  // Crear en: https://github.com/settings/personal-access-tokens/new
+  githubToken: "",
+
+  // Opcional: clave que el equipo escribe al guardar
   teamPassword: "",
+
+  // Repo (no hace falta tocar)
+  owner: "Rivadeshields",
+  repo: "nebula_media",
+  branch: "main",
 };

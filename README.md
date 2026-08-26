@@ -1,22 +1,18 @@
 # Nébula Media — maqueta de contenidos
 
-Página provisional para ordenar el copy **en equipo**, sin que nadie entre a GitHub.
+Página provisional para ordenar el copy **en equipo**.
 
 **Sitio:** https://rivadeshields.github.io/nebula_media/
 
-## Para el equipo (sencillo)
+## Para el equipo
 
-1. Abrir el link de la web.
-2. Escribir tu nombre.
-3. Editar textos / subir fotos.
-4. Pulsar **Guardar**.
+1. Abrir el link.
+2. Editar textos / fotos.
+3. Usar la barra de arriba: checklist · Deshacer · Resetear · **Guardar**.
+4. Ver la pantalla de “Cambio aprobado” y volver a revisar.
 
-En unos segundos el resto ve los cambios (o recargando la página).
+No hace falta entrar a GitHub.
 
-## Para quien administra (una sola vez)
+## Para quien administra (una vez)
 
-Sigue **SETUP.md**: crear un proyecto gratis en Supabase y completar `config.js`.
-
-## Exportar a diseñadora
-
-Usa **Exportar MD** o **Exportar JSON**.
+Sigue **SETUP.md**: crear un token de GitHub limitado a este repo y pegarlo en `config.js`.

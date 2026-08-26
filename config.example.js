@@ -1,11 +1,9 @@
-// Copia este archivo como config.js y completa los datos (una sola vez).
-// Los demás usuarios solo abren la web y pulsan Guardar — no ven GitHub.
+// Ejemplo — copia valores a config.js
 
 window.NEBULA_CONFIG = {
-  // Proyecto gratis: https://supabase.com → New project
-  supabaseUrl: "",
-  supabaseAnonKey: "",
-
-  // Opcional: misma clave para todo el equipo (si la dejas vacía, cualquiera con el link puede guardar)
+  githubToken: "github_pat_xxxx",
   teamPassword: "",
+  owner: "Rivadeshields",
+  repo: "nebula_media",
+  branch: "main",
 };
