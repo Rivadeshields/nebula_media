@@ -1,20 +1,43 @@
-# Para el equipo (Nico, Tamara, Joaquín)
+# Equipo (Nico, Tamara, Joaquín)
 
 1. https://rivadeshields.github.io/nebula_media/
-2. Elegir nombre · clave **1234** · **Guardar**
+2. Nombre + clave **1234** + **Guardar**
 
 ---
 
-# Solo admin — token nuevo (si falla el guardado)
+# Admin — por qué fallaba el token
 
-El error **"Bad credentials"** = el token de GitHub ya no sirve. Crear uno nuevo:
+Si pegabas el token en `config.js` y GitHub lo aceptaba, **GitHub lo revoca solo** en repos públicos (secret scanning). Por eso fallaba aunque crearas uno nuevo.
 
-1. https://github.com/settings/personal-access-tokens/new  
-2. **Repository access:** Only `Rivadeshields/nebula_media`  
-3. **Permissions → Repository permissions → Contents:** Read and write  
-4. Generate token → copiar `github_pat_…`  
-5. En github.com → repo → **config.js** → Edit → pegar en `githubToken: "…"`  
-6. Commit → **Allow secret** si GitHub lo pide  
-7. Esperar 1 min · recargar la web con **Cmd+Shift+R**
+**Solución:** el token va en **Cloudflare Worker** (privado), no en la web.
 
-La clave **1234** no cambia; solo se renueva el token invisible.
+## Setup (una vez, ~10 min)
+
+### 1. Token de GitHub
+- https://github.com/settings/personal-access-tokens/new
+- Repo: `nebula_media` · **Contents: Read and write**
+- Copiar `github_pat_…` (no pegarlo en config.js)
+
+### 2. Cloudflare Worker (gratis)
+```bash
+cd worker
+cp wrangler.toml.example wrangler.toml
+npm create cloudflare@latest . -- --type=hello-world   # si no tienes wrangler
+npx wrangler secret put TEAM_PASSWORD    # escribe: 1234
+npx wrangler secret put GH_PAT           # pega el github_pat
+npx wrangler deploy
+```
+
+Copia la URL que devuelve (ej. `https://nebula-workshop-save.xxx.workers.dev`).
+
+### 3. config.js en GitHub
+Edita https://github.com/Rivadeshields/nebula_media/edit/main/config.js
+
+```js
+saveUrl: "https://TU-WORKER.workers.dev",
+```
+
+**Quita** `githubToken` si existe. Commit.
+
+### 4. Probar
+Recarga con **Cmd+Shift+R** → Nico → 1234 → Guardar.

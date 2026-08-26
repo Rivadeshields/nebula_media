@@ -51,6 +51,15 @@
     return (cfg().githubToken || "").trim();
   }
 
+  function getSaveUrl() {
+    return (cfg().saveUrl || "").trim();
+  }
+
+  function teamPasswordValue() {
+    const input = document.getElementById("team-password");
+    return (input?.value || "").trim() || (cfg().teamPassword || "").trim();
+  }
+
   function validateTeamPassword() {
     const expected = (cfg().teamPassword || "").trim();
     if (!expected) return true;
@@ -391,6 +400,110 @@
     return Boolean(payload.fields && Object.keys(payload.fields).length);
   }
 
+  async function saveViaProxy(name) {
+    const saveUrl = getSaveUrl();
+    if (!saveUrl) throw new Error("Guardado no configurado");
+
+    const imagePaths = {};
+    const imagesPayload = {};
+
+    for (const [key, value] of Object.entries(images)) {
+      if (!value) continue;
+      if (isDataUrl(value)) {
+        imagesPayload[key] = dataUrlToBase64(value);
+        imagePaths[key] = `uploads/${safeUploadName(key)}.jpg`;
+      } else {
+        imagePaths[key] = value;
+      }
+    }
+
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      updatedBy: name,
+      fields: collect(),
+      images: imagePaths,
+    };
+
+    const res = await fetch(saveUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: teamPasswordValue(),
+        name,
+        payload,
+        images: imagesPayload,
+      }),
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Error ${res.status}`);
+    }
+
+    applyImages(imagePaths);
+    lastContentHash = JSON.stringify(payload);
+    showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
+  }
+
+  async function saveViaGithubApi(name) {
+    const { owner, repo: nameRepo, branch } = repo();
+    const me = await githubApi("/user");
+    const login = me.login || name;
+
+    const imagePaths = {};
+    const treeItems = [];
+
+    for (const [key, value] of Object.entries(images)) {
+      if (!value) continue;
+      if (isDataUrl(value)) {
+        const path = `uploads/${safeUploadName(key)}.jpg`;
+        const blob = await createBlob(dataUrlToBase64(value), "base64");
+        treeItems.push({ path, mode: "100644", type: "blob", sha: blob.sha });
+        imagePaths[key] = path;
+      } else {
+        imagePaths[key] = value;
+      }
+    }
+
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      updatedBy: name || login,
+      fields: collect(),
+      images: imagePaths,
+    };
+    const contentBlob = await createBlob(utf8ToBase64(JSON.stringify(payload, null, 2)), "base64");
+    treeItems.push({ path: "content.json", mode: "100644", type: "blob", sha: contentBlob.sha });
+
+    const ref = await githubApi(`/repos/${owner}/${nameRepo}/git/ref/heads/${branch}`);
+    const parentSha = ref.object.sha;
+    const parentCommit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits/${parentSha}`);
+    const tree = await githubApi(`/repos/${owner}/${nameRepo}/git/trees`, {
+      method: "POST",
+      body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: treeItems }),
+    });
+    const commit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits`, {
+      method: "POST",
+      body: JSON.stringify({
+        message: `Workshop: update content (${name || login})`,
+        tree: tree.sha,
+        parents: [parentSha],
+      }),
+    });
+    await githubApi(`/repos/${owner}/${nameRepo}/git/refs/heads/${branch}`, {
+      method: "PATCH",
+      body: JSON.stringify({ sha: commit.sha }),
+    });
+
+    applyImages(imagePaths);
+    lastContentHash = JSON.stringify(payload);
+    showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
+  }
+
   async function saveShared() {
     if (saving) return;
 
@@ -411,7 +524,7 @@
       return;
     }
 
-    if (!getGithubToken()) {
+    if (!getSaveUrl() && !getGithubToken()) {
       setStatus("Guardado compartido aún no activo · avisa a quien administra el repo");
       return;
     }
@@ -424,62 +537,16 @@
     saveLocalDraft();
 
     try {
-      const { owner, repo: nameRepo, branch } = repo();
-      const me = await githubApi("/user");
-      const login = me.login || name;
-
-      const imagePaths = {};
-      const treeItems = [];
-
-      for (const [key, value] of Object.entries(images)) {
-        if (!value) continue;
-        if (isDataUrl(value)) {
-          const path = `uploads/${safeUploadName(key)}.jpg`;
-          const blob = await createBlob(dataUrlToBase64(value), "base64");
-          treeItems.push({ path, mode: "100644", type: "blob", sha: blob.sha });
-          imagePaths[key] = path;
-        } else {
-          imagePaths[key] = value;
-        }
+      if (getSaveUrl()) {
+        await saveViaProxy(name);
+      } else {
+        await saveViaGithubApi(name);
       }
-
-      const payload = {
-        updatedAt: new Date().toISOString(),
-        updatedBy: name || login,
-        fields: collect(),
-        images: imagePaths,
-      };
-      const contentBlob = await createBlob(utf8ToBase64(JSON.stringify(payload, null, 2)), "base64");
-      treeItems.push({ path: "content.json", mode: "100644", type: "blob", sha: contentBlob.sha });
-
-      const ref = await githubApi(`/repos/${owner}/${nameRepo}/git/ref/heads/${branch}`);
-      const parentSha = ref.object.sha;
-      const parentCommit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits/${parentSha}`);
-      const tree = await githubApi(`/repos/${owner}/${nameRepo}/git/trees`, {
-        method: "POST",
-        body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: treeItems }),
-      });
-      const commit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits`, {
-        method: "POST",
-        body: JSON.stringify({
-          message: `Workshop: update content (${name || login})`,
-          tree: tree.sha,
-          parents: [parentSha],
-        }),
-      });
-      await githubApi(`/repos/${owner}/${nameRepo}/git/refs/heads/${branch}`, {
-        method: "PATCH",
-        body: JSON.stringify({ sha: commit.sha }),
-      });
-
-      applyImages(imagePaths);
-      lastContentHash = JSON.stringify(payload);
-      showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
     } catch (err) {
       console.error(err);
       const msg = String(err.message || "");
       if (/bad credentials/i.test(msg)) {
-        setStatus("Token de GitHub inválido o expirado · quien administra debe crear uno nuevo en config.js");
+        setStatus("Token de GitHub inválido · configura saveUrl (ver SETUP.md)");
       } else {
         setStatus(`No se pudo guardar: ${msg}`);
       }

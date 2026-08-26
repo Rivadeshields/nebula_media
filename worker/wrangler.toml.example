@@ -1,0 +1,12 @@
+name = "nebula-workshop-save"
+main = "workshop-save.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+GH_OWNER = "Rivadeshields"
+GH_REPO = "nebula_media"
+GH_BRANCH = "main"
+
+# Configurar secrets (no commitear):
+# npx wrangler secret put TEAM_PASSWORD
+# npx wrangler secret put GH_PAT
