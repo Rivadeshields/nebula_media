@@ -30,16 +30,46 @@
     <div class="panel__tools" aria-label="Herramientas de copy">
       <p class="panel__tools-title">Copy de trabajo</p>
       <p id="editor-status" class="panel__status">Listo para editar</p>
+      <p id="github-status" class="panel__status panel__status--muted">GitHub: no conectado</p>
       <div class="panel__actions">
-        <button type="button" class="btn" id="btn-save">Guardar</button>
-        <button type="button" class="btn btn--accent" id="btn-export-md">Exportar MD</button>
+        <button type="button" class="btn btn--accent" id="btn-save-github">Guardar en GitHub</button>
+        <button type="button" class="btn" id="btn-connect-github">Conectar GitHub</button>
+        <button type="button" class="btn" id="btn-export-md">Exportar MD</button>
         <button type="button" class="btn" id="btn-export-json">Exportar JSON</button>
-        <button type="button" class="btn btn--ghost" id="btn-reset">Reset borrador</button>
+        <button type="button" class="btn btn--ghost" id="btn-reset">Reset local</button>
       </div>
       <p class="panel__hint">
-        Textos y fotos (equipo, portafolio, esquema) se guardan en este navegador.
-        Los pendientes se marcan solos al completar cada ítem.
+        <strong>Guardar en GitHub</strong> publica textos e imágenes en el repo para todo el equipo.
+        Cada persona necesita conectar su token una vez (permiso de escritura en este repo).
       </p>
+    </div>
+
+    <div id="github-modal" class="modal" hidden>
+      <div class="modal__card" role="dialog" aria-labelledby="github-modal-title">
+        <h2 id="github-modal-title">Conectar GitHub</h2>
+        <p>
+          Crea un token con acceso de escritura a
+          <code>Rivadeshields/nebula_media</code>
+          y pégalo aquí. Se guarda solo en tu navegador.
+        </p>
+        <ol class="modal__steps">
+          <li>Abre
+            <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">
+              Settings → Fine-grained tokens
+            </a>
+          </li>
+          <li>New token → solo el repo <code>nebula_media</code></li>
+          <li>Permissions → <strong>Contents: Read and write</strong></li>
+          <li>Generate y copia el token</li>
+        </ol>
+        <label class="modal__label" for="github-token">Token</label>
+        <input id="github-token" class="modal__input" type="password" autocomplete="off" placeholder="github_pat_…" />
+        <div class="modal__actions">
+          <button type="button" class="btn btn--accent" id="btn-github-save-token">Guardar conexión</button>
+          <button type="button" class="btn btn--ghost" id="btn-github-cancel">Cancelar</button>
+          <button type="button" class="btn btn--ghost" id="btn-github-disconnect" hidden>Desconectar</button>
+        </div>
+      </div>
     </div>
 
     <div class="panel__decision">

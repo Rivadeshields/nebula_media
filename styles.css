@@ -179,12 +179,95 @@ img {
   font-weight: 300;
 }
 
-.panel__hint {
-  margin: 0.75rem 0 0;
+.panel__status--muted {
+  opacity: 0.75;
   font-size: 0.75rem;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(8, 6, 16, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal__card {
+  width: min(440px, 100%);
+  background: #1a1438;
+  border: 1px solid var(--line);
+  padding: 1.35rem 1.4rem;
+  color: var(--ink);
+}
+
+.modal__card h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.modal__card p {
+  margin: 0 0 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.45;
   color: var(--ink-soft);
   font-weight: 300;
+}
+
+.modal__card code {
+  font-size: 0.8em;
+  color: var(--accent);
+}
+
+.modal__steps {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  font-weight: 300;
+}
+
+.modal__steps a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.modal__label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.modal__input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  background: #0c0918;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.modal__input:focus {
+  outline: 1px solid var(--accent);
+}
+
+.modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 .panel__decision {
