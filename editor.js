@@ -477,7 +477,12 @@
       showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
     } catch (err) {
       console.error(err);
-      setStatus(`No se pudo guardar: ${err.message}`);
+      const msg = String(err.message || "");
+      if (/bad credentials/i.test(msg)) {
+        setStatus("Token de GitHub inválido o expirado · quien administra debe crear uno nuevo en config.js");
+      } else {
+        setStatus(`No se pudo guardar: ${msg}`);
+      }
     } finally {
       saving = false;
       if (btn) btn.disabled = false;
