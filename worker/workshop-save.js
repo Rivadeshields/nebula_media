@@ -33,6 +33,7 @@ async function gh(token, path, opts = {}) {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${token}`,
       "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "nebula-workshop-save",
       ...(opts.body ? { "Content-Type": "application/json" } : {}),
     },
   });
@@ -43,7 +44,10 @@ async function gh(token, path, opts = {}) {
   } catch {
     data = { raw: text };
   }
-  if (!res.ok) throw new Error(data?.message || `GitHub ${res.status}`);
+  if (!res.ok) {
+    const detail = data?.message || data?.raw || res.statusText;
+    throw new Error(`GitHub ${res.status}: ${detail}`);
+  }
   return data;
 }
 
@@ -73,7 +77,26 @@ async function putFile(token, path, contentBase64, message) {
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
-    if (request.method === "GET") return json({ ok: true, service: "nebula-workshop-save" });
+    if (request.method === "GET") {
+      const url = new URL(request.url);
+      if (url.searchParams.get("diag") === "1") {
+        const token = env.GH_PAT;
+        if (!token) return json({ ok: false, error: "GH_PAT no configurado" }, 500);
+        try {
+          const me = await gh(token, "/user");
+          const repo = await gh(token, `/repos/${REPO.owner}/${REPO.repo}`);
+          return json({
+            ok: true,
+            login: me.login || null,
+            repo: repo.full_name,
+            permissions: repo.permissions || null,
+          });
+        } catch (err) {
+          return json({ ok: false, error: err.message || String(err) }, 500);
+        }
+      }
+      return json({ ok: true, service: "nebula-workshop-save" });
+    }
 
     if (request.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
 
