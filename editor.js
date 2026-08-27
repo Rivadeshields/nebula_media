@@ -308,7 +308,7 @@
     return (dataUrl.split(",")[1] || "");
   }
 
-  async function loadSharedContent() {
+  async function fetchContentPayload() {
     const { owner, repo, branch } = {
       owner: (cfg().owner || "Rivadeshields"),
       repo: (cfg().repo || "nebula_media"),
@@ -316,21 +316,28 @@
     };
     const stamp = Date.now();
     const urls = [
-      `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/content.json?t=${stamp}`,
-      `content.json?t=${stamp}`,
+      // API de GitHub (más fresco que el CDN de Pages)
+      {
+        url: `https://api.github.com/repos/${owner}/${repo}/contents/content.json?ref=${branch}&t=${stamp}`,
+        headers: { Accept: "application/vnd.github.raw+json" },
+      },
+      { url: `content.json?t=${stamp}`, headers: {} },
     ];
 
-    let payload = null;
-    for (const url of urls) {
+    for (const item of urls) {
       try {
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(item.url, { cache: "no-store", headers: item.headers });
         if (!res.ok) continue;
-        payload = await res.json();
-        break;
+        return await res.json();
       } catch {
         /* try next */
       }
     }
+    return null;
+  }
+
+  async function loadSharedContent() {
+    const payload = await fetchContentPayload();
     if (!payload) return false;
 
     const hash = JSON.stringify(payload);
@@ -420,26 +427,7 @@
   async function pollRemote() {
     if (saving || document.hidden) return;
     try {
-      const { owner, repo, branch } = {
-        owner: (cfg().owner || "Rivadeshields"),
-        repo: (cfg().repo || "nebula_media"),
-        branch: (cfg().branch || "main"),
-      };
-      const stamp = Date.now();
-      let payload = null;
-      for (const url of [
-        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/content.json?t=${stamp}`,
-        `content.json?t=${stamp}`,
-      ]) {
-        try {
-          const res = await fetch(url, { cache: "no-store" });
-          if (!res.ok) continue;
-          payload = await res.json();
-          break;
-        } catch {
-          /* next */
-        }
-      }
+      const payload = await fetchContentPayload();
       if (!payload) return;
       const hash = JSON.stringify(payload);
       if (lastContentHash && hash !== lastContentHash) {
