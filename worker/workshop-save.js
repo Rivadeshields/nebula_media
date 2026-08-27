@@ -1,15 +1,14 @@
 /**
- * Proxy de guardado para Nébula Workshop.
- * El token de GitHub vive SOLO en secrets del Worker (no en config.js público).
- *
- * Secrets en Cloudflare:
- *   GH_PAT, GH_OWNER, GH_REPO, GH_BRANCH (opcional)
- *   SAVE_KEY (opcional, solo si quieres bloquear saves anónimos)
+ * Nébula Workshop — guardado compartido
+ * Desplegar en Cloudflare Workers (gratis).
+ * Solo secret necesario: GH_PAT
  */
+
+const REPO = { owner: "Rivadeshields", repo: "nebula_media", branch: "main" };
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -27,15 +26,14 @@ function utf8ToBase64(str) {
   return btoa(binary);
 }
 
-async function gh(env, path, opts = {}) {
+async function gh(token, path, opts = {}) {
   const res = await fetch(`https://api.github.com${path}`, {
     ...opts,
     headers: {
       Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${env.GH_PAT}`,
+      Authorization: `Bearer ${token}`,
       "X-GitHub-Api-Version": "2022-11-28",
       ...(opts.body ? { "Content-Type": "application/json" } : {}),
-      ...(opts.headers || {}),
     },
   });
   const text = await res.text();
@@ -49,18 +47,19 @@ async function gh(env, path, opts = {}) {
   return data;
 }
 
-async function putFile(env, path, contentBase64, message) {
-  const owner = env.GH_OWNER;
-  const repo = env.GH_REPO;
-  const branch = env.GH_BRANCH || "main";
+async function putFile(token, path, contentBase64, message) {
+  const { owner, repo, branch } = REPO;
   let sha;
   try {
-    const existing = await gh(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`);
+    const existing = await gh(
+      token,
+      `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`
+    );
     sha = existing.sha;
   } catch {
     sha = undefined;
   }
-  await gh(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, {
+  await gh(token, `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, {
     method: "PUT",
     body: JSON.stringify({
       message,
@@ -74,17 +73,18 @@ async function putFile(env, path, contentBase64, message) {
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
+    if (request.method === "GET") return json({ ok: true, service: "nebula-workshop-save" });
+
     if (request.method !== "POST") return json({ ok: false, error: "POST only" }, 405);
+
+    const token = env.GH_PAT;
+    if (!token) return json({ ok: false, error: "GH_PAT no configurado" }, 500);
 
     let body;
     try {
       body = await request.json();
     } catch {
       return json({ ok: false, error: "JSON inválido" }, 400);
-    }
-
-    if ((env.SAVE_KEY || "") && body.key !== env.SAVE_KEY) {
-      return json({ ok: false, error: "No autorizado" }, 401);
     }
 
     const payload = body.payload;
@@ -98,12 +98,12 @@ export default {
         if (!b64) continue;
         const safe = key.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
         const rel = `uploads/${safe}.jpg`;
-        await putFile(env, rel, b64, message);
+        await putFile(token, rel, b64, message);
         imagePaths[key] = rel;
       }
 
       payload.images = imagePaths;
-      await putFile(env, "content.json", utf8ToBase64(`${JSON.stringify(payload, null, 2)}\n`), message);
+      await putFile(token, "content.json", utf8ToBase64(`${JSON.stringify(payload, null, 2)}\n`), message);
       return json({ ok: true });
     } catch (err) {
       return json({ ok: false, error: err.message || "Error al guardar" }, 500);
