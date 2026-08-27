@@ -8,5 +8,4 @@ GH_REPO = "nebula_media"
 GH_BRANCH = "main"
 
 # Configurar secrets (no commitear):
-# npx wrangler secret put TEAM_PASSWORD
 # npx wrangler secret put GH_PAT

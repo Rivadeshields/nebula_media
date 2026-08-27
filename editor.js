@@ -2,12 +2,11 @@
  * Nébula workshop editor
  * Banner: checklist + guardar / deshacer / resetear
  * Guardar → éxito → volver con cambios
- * Espacio compartido: GitHub vía token en config.js (invisible para el equipo)
+ * Espacio compartido vía saveUrl (Worker), sin login
  */
 (() => {
   const STORAGE_KEY = "nebula-copy-v1";
   const IMAGES_KEY = "nebula-images-v1";
-  const NAME_KEY = "nebula-editor-name";
   const CHECKLIST_KEY = "nebula-checklist-v1";
   const MAX_IMAGE_SIDE = 1400;
   const JPEG_QUALITY = 0.78;
@@ -38,39 +37,8 @@
   let lastContentHash = null;
   let applyingHistory = false;
 
-  function repo() {
-    const c = cfg();
-    return {
-      owner: c.owner || "Rivadeshields",
-      repo: c.repo || "nebula_media",
-      branch: c.branch || "main",
-    };
-  }
-
-  function getGithubToken() {
-    return (cfg().githubToken || "").trim();
-  }
-
   function getSaveUrl() {
     return (cfg().saveUrl || "").trim();
-  }
-
-  function teamPasswordValue() {
-    const input = document.getElementById("team-password");
-    return (input?.value || "").trim() || (cfg().teamPassword || "").trim();
-  }
-
-  function validateTeamPassword() {
-    const expected = (cfg().teamPassword || "").trim();
-    if (!expected) return true;
-    if (sessionStorage.getItem("nebula-team-ok") === "1") return true;
-    const input = document.getElementById("team-password");
-    const typed = (input?.value || "").trim();
-    if (typed === expected) {
-      sessionStorage.setItem("nebula-team-ok", "1");
-      return true;
-    }
-    return false;
   }
 
   function fields() {
@@ -336,50 +304,12 @@
     }, SUCCESS_MS);
   }
 
-  async function githubApi(path, options = {}) {
-    const token = getGithubToken();
-    if (!token) throw new Error("Falta configurar el token de publicación (avisa a quien administra el proyecto)");
-    const res = await fetch(`https://api.github.com${path}`, {
-      ...options,
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...(options.headers || {}),
-      },
-    });
-    const text = await res.text();
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = { raw: text };
-    }
-    if (!res.ok) {
-      throw new Error(data?.message || `Error ${res.status}`);
-    }
-    return data;
-  }
-
   function safeUploadName(key) {
     return key.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
   }
 
   function dataUrlToBase64(dataUrl) {
     return (dataUrl.split(",")[1] || "");
-  }
-
-  function utf8ToBase64(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-
-  async function createBlob(content, encoding) {
-    const { owner, repo: name } = repo();
-    return githubApi(`/repos/${owner}/${name}/git/blobs`, {
-      method: "POST",
-      body: JSON.stringify({ content, encoding }),
-    });
   }
 
   async function loadSharedContent() {
@@ -392,7 +322,7 @@
     lastContentHash = hash;
     if (payload.updatedAt) {
       const when = new Date(payload.updatedAt).toLocaleString("es-CL");
-      setStatus(`Contenido compartido${payload.updatedBy ? ` · ${payload.updatedBy}` : ""} · ${when}`);
+      setStatus(`Contenido compartido · ${when}`);
     }
     saveLocalDraft();
     updateAutoChecks();
@@ -400,7 +330,7 @@
     return Boolean(payload.fields && Object.keys(payload.fields).length);
   }
 
-  async function saveViaProxy(name) {
+  async function saveRemote() {
     const saveUrl = getSaveUrl();
     if (!saveUrl) throw new Error("Guardado no configurado");
 
@@ -419,7 +349,6 @@
 
     const payload = {
       updatedAt: new Date().toISOString(),
-      updatedBy: name,
       fields: collect(),
       images: imagePaths,
     };
@@ -427,12 +356,7 @@
     const res = await fetch(saveUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        password: teamPasswordValue(),
-        name,
-        payload,
-        images: imagesPayload,
-      }),
+      body: JSON.stringify({ payload, images: imagesPayload }),
     });
 
     let data = null;
@@ -447,85 +371,14 @@
 
     applyImages(imagePaths);
     lastContentHash = JSON.stringify(payload);
-    showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
-  }
-
-  async function saveViaGithubApi(name) {
-    const { owner, repo: nameRepo, branch } = repo();
-    const me = await githubApi("/user");
-    const login = me.login || name;
-
-    const imagePaths = {};
-    const treeItems = [];
-
-    for (const [key, value] of Object.entries(images)) {
-      if (!value) continue;
-      if (isDataUrl(value)) {
-        const path = `uploads/${safeUploadName(key)}.jpg`;
-        const blob = await createBlob(dataUrlToBase64(value), "base64");
-        treeItems.push({ path, mode: "100644", type: "blob", sha: blob.sha });
-        imagePaths[key] = path;
-      } else {
-        imagePaths[key] = value;
-      }
-    }
-
-    const payload = {
-      updatedAt: new Date().toISOString(),
-      updatedBy: name || login,
-      fields: collect(),
-      images: imagePaths,
-    };
-    const contentBlob = await createBlob(utf8ToBase64(JSON.stringify(payload, null, 2)), "base64");
-    treeItems.push({ path: "content.json", mode: "100644", type: "blob", sha: contentBlob.sha });
-
-    const ref = await githubApi(`/repos/${owner}/${nameRepo}/git/ref/heads/${branch}`);
-    const parentSha = ref.object.sha;
-    const parentCommit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits/${parentSha}`);
-    const tree = await githubApi(`/repos/${owner}/${nameRepo}/git/trees`, {
-      method: "POST",
-      body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: treeItems }),
-    });
-    const commit = await githubApi(`/repos/${owner}/${nameRepo}/git/commits`, {
-      method: "POST",
-      body: JSON.stringify({
-        message: `Workshop: update content (${name || login})`,
-        tree: tree.sha,
-        parents: [parentSha],
-      }),
-    });
-    await githubApi(`/repos/${owner}/${nameRepo}/git/refs/heads/${branch}`, {
-      method: "PATCH",
-      body: JSON.stringify({ sha: commit.sha }),
-    });
-
-    applyImages(imagePaths);
-    lastContentHash = JSON.stringify(payload);
-    showSuccessThenReload(`Cambio aprobado · ${name}. En unos segundos el equipo lo verá al recargar.`);
+    showSuccessThenReload("Guardado · el equipo lo verá al recargar");
   }
 
   async function saveShared() {
     if (saving) return;
 
-    const nameInput = document.getElementById("editor-name");
-    const name = (nameInput?.value || "").trim();
-    if (!name) {
-      setStatus("Elige quién eres (Nico, Tamara o Joaquín)");
-      nameInput?.focus();
-      return;
-    }
-    localStorage.setItem(NAME_KEY, name);
-
-    const passInput = document.getElementById("team-password");
-    if (passInput) passInput.hidden = false;
-    if (!validateTeamPassword()) {
-      setStatus("Clave incorrecta · la clave del equipo es 1234");
-      passInput?.focus();
-      return;
-    }
-
-    if (!getSaveUrl() && !getGithubToken()) {
-      setStatus("Guardado compartido aún no activo · avisa a quien administra el repo");
+    if (!getSaveUrl()) {
+      setStatus("Guardado aún no activo · avisa a quien administra el repo");
       return;
     }
 
@@ -537,19 +390,10 @@
     saveLocalDraft();
 
     try {
-      if (getSaveUrl()) {
-        await saveViaProxy(name);
-      } else {
-        await saveViaGithubApi(name);
-      }
+      await saveRemote();
     } catch (err) {
       console.error(err);
-      const msg = String(err.message || "");
-      if (/bad credentials/i.test(msg)) {
-        setStatus("Token de GitHub inválido · configura saveUrl (ver SETUP.md)");
-      } else {
-        setStatus(`No se pudo guardar: ${msg}`);
-      }
+      setStatus(`No se pudo guardar: ${err.message}`);
     } finally {
       saving = false;
       if (btn) btn.disabled = false;
@@ -572,7 +416,7 @@
         updateUndoBtn();
         updateAutoChecks();
         renderChecklist();
-        setStatus(`Actualizado por ${payload.updatedBy || "el equipo"}`);
+        setStatus(payload.updatedAt ? `Actualizado · ${new Date(payload.updatedAt).toLocaleString("es-CL")}` : "Actualizado");
       } else if (!lastContentHash) {
         lastContentHash = hash;
       }
@@ -754,13 +598,9 @@
           updateAutoChecks();
           renderChecklist();
         }, 400);
-        setStatus("Editando… · Guardar para aprobar el cambio");
+        setStatus("Editando… · pulsa Guardar");
       });
     }
-
-    const nameInput = document.getElementById("editor-name");
-    const savedName = localStorage.getItem(NAME_KEY) || "";
-    if (nameInput && savedName) nameInput.value = savedName;
 
     document.getElementById("btn-save")?.addEventListener("click", saveShared);
     document.getElementById("btn-undo")?.addEventListener("click", undo);
@@ -803,7 +643,7 @@
       } catch {
         /* ignore */
       }
-      setStatus("Listo · elige tu nombre, clave 1234, y Guardar");
+      setStatus("Listo · edita y pulsa Guardar");
     }
 
     updateAutoChecks();

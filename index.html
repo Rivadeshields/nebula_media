@@ -35,13 +35,6 @@
     <p class="topbar__status" id="editor-status">Listo para editar</p>
 
     <div class="topbar__right">
-      <select id="editor-name" class="topbar__name topbar__name--select" title="Quién edita">
-        <option value="">Quién eres…</option>
-        <option value="Nico">Nico</option>
-        <option value="Tamara">Tamara</option>
-        <option value="Joaquín">Joaquín</option>
-      </select>
-      <input id="team-password" class="topbar__name" type="password" maxlength="32" placeholder="Clave" autocomplete="off" title="Clave del equipo" />
       <button type="button" class="btn btn--ghost" id="btn-undo" title="Deshacer (hasta 3 pasos)">Deshacer</button>
       <button type="button" class="btn btn--ghost" id="btn-reset-open" title="Volver al estado al abrir la página">Resetear</button>
       <button type="button" class="btn btn--accent" id="btn-save">Guardar</button>
@@ -52,8 +45,8 @@
     <div class="success-screen__inner">
       <img src="logo.png" alt="Nébula Media" width="180" height="54" />
       <p class="success-screen__eyebrow">Workshop · contenido</p>
-      <h1 class="success-screen__title">Cambio aprobado exitosamente</h1>
-      <p class="success-screen__lead" id="success-detail">Tu edición ya está incorporada. Volvemos a la página para que la revises.</p>
+      <h1 class="success-screen__title">Guardado</h1>
+      <p class="success-screen__lead" id="success-detail">Los cambios ya están publicados. Volvemos a la página.</p>
       <div class="success-screen__bar" aria-hidden="true"><span></span></div>
     </div>
   </div>
@@ -477,7 +470,7 @@
       </div>
     </footer>
   </div>
-  <script src="config.js?v=8"></script>
-  <script src="editor.js?v=8"></script>
+  <script src="config.js?v=9"></script>
+  <script src="editor.js?v=9"></script>
 </body>
 </html>

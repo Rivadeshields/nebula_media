@@ -3,7 +3,8 @@
  * El token de GitHub vive SOLO en secrets del Worker (no en config.js público).
  *
  * Secrets en Cloudflare:
- *   TEAM_PASSWORD, GH_PAT, GH_OWNER, GH_REPO, GH_BRANCH (opcional, default main)
+ *   GH_PAT, GH_OWNER, GH_REPO, GH_BRANCH (opcional)
+ *   SAVE_KEY (opcional, solo si quieres bloquear saves anónimos)
  */
 
 const cors = {
@@ -82,16 +83,15 @@ export default {
       return json({ ok: false, error: "JSON inválido" }, 400);
     }
 
-    if ((body.password || "") !== env.TEAM_PASSWORD) {
-      return json({ ok: false, error: "Clave incorrecta" }, 401);
+    if ((env.SAVE_KEY || "") && body.key !== env.SAVE_KEY) {
+      return json({ ok: false, error: "No autorizado" }, 401);
     }
 
-    const name = body.name || "Equipo";
     const payload = body.payload;
     if (!payload) return json({ ok: false, error: "Falta payload" }, 400);
 
     try {
-      const message = `Workshop: update content (${name})`;
+      const message = "Workshop: update content";
       const imagePaths = { ...(payload.images || {}) };
 
       for (const [key, b64] of Object.entries(body.images || {})) {
