@@ -289,17 +289,13 @@
         bar.style.animation = "";
       }
     }
-    setTimeout(async () => {
-      try {
-        await loadSharedContent();
-      } catch {
-        /* keep current */
-      }
+    setTimeout(() => {
+      // No recargar desde Pages aquí: el CDN tarda y pisaría el cambio recién guardado.
       openSnapshot = snapshot();
       history = [JSON.parse(JSON.stringify(openSnapshot))];
       updateUndoBtn();
       if (screen) screen.hidden = true;
-      setStatus("Cambios incorporados · puedes seguir editando");
+      setStatus("Guardado · el equipo lo verá al recargar (puede tardar ~1 min en Pages)");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }, SUCCESS_MS);
   }
@@ -313,9 +309,30 @@
   }
 
   async function loadSharedContent() {
-    const res = await fetch(`content.json?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) return false;
-    const payload = await res.json();
+    const { owner, repo, branch } = {
+      owner: (cfg().owner || "Rivadeshields"),
+      repo: (cfg().repo || "nebula_media"),
+      branch: (cfg().branch || "main"),
+    };
+    const stamp = Date.now();
+    const urls = [
+      `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/content.json?t=${stamp}`,
+      `content.json?t=${stamp}`,
+    ];
+
+    let payload = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) continue;
+        payload = await res.json();
+        break;
+      } catch {
+        /* try next */
+      }
+    }
+    if (!payload) return false;
+
     const hash = JSON.stringify(payload);
     if (payload.fields && Object.keys(payload.fields).length) apply(payload.fields);
     if (payload.images) applyImages(payload.images);
@@ -403,9 +420,27 @@
   async function pollRemote() {
     if (saving || document.hidden) return;
     try {
-      const res = await fetch(`content.json?t=${Date.now()}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const payload = await res.json();
+      const { owner, repo, branch } = {
+        owner: (cfg().owner || "Rivadeshields"),
+        repo: (cfg().repo || "nebula_media"),
+        branch: (cfg().branch || "main"),
+      };
+      const stamp = Date.now();
+      let payload = null;
+      for (const url of [
+        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/content.json?t=${stamp}`,
+        `content.json?t=${stamp}`,
+      ]) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) continue;
+          payload = await res.json();
+          break;
+        } catch {
+          /* next */
+        }
+      }
+      if (!payload) return;
       const hash = JSON.stringify(payload);
       if (lastContentHash && hash !== lastContentHash) {
         if (payload.fields) apply(payload.fields);
