@@ -11,6 +11,7 @@
   const MAX_IMAGE_SIDE = 1400;
   const JPEG_QUALITY = 0.78;
   const POLL_MS = 15000;
+  const AUTOSAVE_MS = 60000;
   const HISTORY_LIMIT = 10;
   const SUCCESS_MS = 1800;
 
@@ -354,7 +355,37 @@
     return Boolean(payload.fields && Object.keys(payload.fields).length);
   }
 
-  async function saveRemote() {
+  function currentPayloadDraft() {
+    const imagePaths = {};
+    for (const [key, value] of Object.entries(images)) {
+      if (!value) continue;
+      if (isDataUrl(value)) {
+        imagePaths[key] = `uploads/${safeUploadName(key)}.jpg`;
+      } else {
+        imagePaths[key] = value;
+      }
+    }
+    return {
+      fields: collect(),
+      images: imagePaths,
+    };
+  }
+
+  function hasUnsavedChanges() {
+    if (!lastContentHash) return true;
+    try {
+      const remote = JSON.parse(lastContentHash);
+      const local = currentPayloadDraft();
+      return (
+        JSON.stringify(remote.fields || {}) !== JSON.stringify(local.fields || {}) ||
+        JSON.stringify(remote.images || {}) !== JSON.stringify(local.images || {})
+      );
+    } catch {
+      return true;
+    }
+  }
+
+  async function saveRemote({ silent = false } = {}) {
     const saveUrl = getSaveUrl();
     if (!saveUrl) throw new Error("Guardado no configurado");
 
@@ -395,26 +426,35 @@
 
     applyImages(imagePaths);
     lastContentHash = JSON.stringify(payload);
-    showSuccessThenReload("Guardado · el equipo lo verá al recargar");
+    if (silent) {
+      setStatus(`Autoguardado · ${new Date(payload.updatedAt).toLocaleTimeString("es-CL")}`);
+      openSnapshot = snapshot();
+      history = [JSON.parse(JSON.stringify(openSnapshot))];
+      updateUndoBtn();
+    } else {
+      showSuccessThenReload("Guardado · el equipo lo verá al recargar");
+    }
   }
 
-  async function saveShared() {
+  async function saveShared({ silent = false } = {}) {
     if (saving) return;
 
     if (!getSaveUrl()) {
-      setStatus("Guardado aún no activo · avisa a quien administra el repo");
+      if (!silent) setStatus("Guardado aún no activo · avisa a quien administra el repo");
       return;
     }
+
+    if (silent && !hasUnsavedChanges()) return;
 
     saving = true;
     const btn = document.getElementById("btn-save");
     if (btn) btn.disabled = true;
-    setStatus("Guardando…");
-    pushHistory();
+    setStatus(silent ? "Autoguardando…" : "Guardando…");
+    if (!silent) pushHistory();
     saveLocalDraft();
 
     try {
-      await saveRemote();
+      await saveRemote({ silent });
     } catch (err) {
       console.error(err);
       setStatus(`No se pudo guardar: ${err.message}`);
@@ -422,6 +462,12 @@
       saving = false;
       if (btn) btn.disabled = false;
     }
+  }
+
+  async function autosaveTick() {
+    if (document.hidden || saving || !getSaveUrl()) return;
+    if (!hasUnsavedChanges()) return;
+    await saveShared({ silent: true });
   }
 
   async function pollRemote() {
@@ -676,6 +722,7 @@
     updateUndoBtn();
 
     setInterval(pollRemote, POLL_MS);
+    setInterval(autosaveTick, AUTOSAVE_MS);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) pollRemote();
     });
